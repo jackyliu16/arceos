@@ -19,5 +19,6 @@ macro_rules! println {
     () => { $crate::print!("\n") };
     ($($arg:tt)*) => {
         $crate::io::__print_impl(format_args!("{}\n", format_args!($($arg)*)));
+        // $crate::io::__print_impl(format_args!("\x1b[31m{}\x1b[0m\n", format_args!($($arg)*)));
     }
 }
