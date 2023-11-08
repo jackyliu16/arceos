@@ -89,13 +89,14 @@
               pkg-config
               # exa
               fd
-	      ripgrep
+              ripgrep
               # Rust Configuraiton  
               zlib
               rustup
               cargo-binutils
               rust-toolchain
             ]) ++ [
+              # Overlays part
               pkgs.qemu
             ];
 
