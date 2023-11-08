@@ -57,37 +57,36 @@
       in
       {
         devShells = {
-          qemu = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              vim
-              # exa
-              fd
-              zlib
-              qemu
-            ];
+          # qemu = pkgs.mkShell {
+          #   buildInputs = with pkgs; [
+          #     vim
+          #     # exa
+          #     fd
+          #     zlib
+          #     qemu
+          #   ];
 
-            shellHook = ''
-              alias ls=exa
-              alias find=fd
+          #   shellHook = ''
+          #     alias ls=exa
+          #     alias find=fd
 
-              # Change the mirror of rust
-              export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
-              export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+          #     # Change the mirror of rust
+          #     export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+          #     export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
 
-              unset OBJCOPY # Avoiding Overlay
-              export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib" # nixpkgs@52447
-              export LD_LIBRARY_PATH="${pkgs.zlib}/lib:$LD_LIBRARY_PATH" # nixpkgs@92946
-              
-              export PATH=$PATH:$(realpath .)/.toolchain/aarch64-linux-musl-cross/bin:$(realpath .)/.toolchain/riscv64-linux-musl-cross/bin:$(realpath .)/.toolchain/x86_64-linux-musl-cross/bin/
-            '';
-          };
-          full = pkgs.mkShell {
+          #     unset OBJCOPY # Avoiding Overlay
+          #     export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib" # nixpkgs@52447
+          #     export LD_LIBRARY_PATH="${pkgs.zlib}/lib:$LD_LIBRARY_PATH" # nixpkgs@92946
+          #     
+          #     export PATH=$PATH:$(realpath .)/.toolchain/aarch64-linux-musl-cross/bin:$(realpath .)/.toolchain/riscv64-linux-musl-cross/bin:$(realpath .)/.toolchain/x86_64-linux-musl-cross/bin/
+          #   '';
+          # };
+          default = pkgs.mkShell {
             buildInputs = (with pkgs;[
               gnumake
               # Basic
               openssl
               pkg-config
-              # exa
               fd
               ripgrep
               # Rust Configuraiton  
@@ -109,7 +108,6 @@
             # BINDGEN_EXTRA_CLANG_ARGS = "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.lib.getVersion pkgs.clang}/include"; # https://github.com/NixOS/nixpkgs/issues/52447#issuecomment-853429315
 
             shellHook = ''
-              alias ls=exa
               alias find=fd
 
               # Change the mirror of rust
