@@ -80,19 +80,19 @@ fn hash_map(n: usize, alloc: &(impl Allocator + Clone)) {
 
 fn bench(c: &mut Criterion, alloc_name: &str, alloc: impl Allocator + Clone) {
     let mut g = c.benchmark_group(alloc_name);
-    g.bench_function("vec_push_3M", |b| {
-        b.iter(|| vec_push(black_box(3_000_000), &alloc));
-    });
-    g.sample_size(10);
-    g.bench_function("vec_rand_free_25K_64", |b| {
-        b.iter(|| vec_rand_free(black_box(25_000), black_box(64), &alloc));
-    });
-    g.bench_function("vec_rand_free_7500_520", |b| {
-        b.iter(|| vec_rand_free(black_box(7_500), black_box(520), &alloc));
-    });
-    g.bench_function("btree_map_50K", |b| {
-        b.iter(|| btree_map(black_box(50_000), &alloc));
-    });
+    // g.bench_function("vec_push_3M", |b| {
+    //     b.iter(|| vec_push(black_box(3_000_000), &alloc));
+    // });
+    // g.sample_size(10);
+    // g.bench_function("vec_rand_free_25K_64", |b| {
+    //     b.iter(|| vec_rand_free(black_box(25_000), black_box(64), &alloc));
+    // });
+    // g.bench_function("vec_rand_free_7500_520", |b| {
+    //     b.iter(|| vec_rand_free(black_box(7_500), black_box(520), &alloc));
+    // });
+    // g.bench_function("btree_map_50K", |b| {
+    //     b.iter(|| btree_map(black_box(50_000), &alloc));
+    // });
     g.bench_function("hash_map", |b| {
         b.iter(|| btree_map(black_box(50_000), &alloc));
     });
