@@ -1,15 +1,15 @@
 #[cfg(test)]
 mod tests;
 
+use core::cell::Cell;
+use arceos_api::rand;
 use hashbrown::hash_map as base;
-
 use core::borrow::Borrow;
 use core::fmt::{self, Debug};
 #[allow(deprecated)]
 use core::hash::{BuildHasher, Hash, Hasher, SipHasher13};
 use core::ops::Index;
 
-#[cfg_attr(not(test), rustc_diagnostic_item = "HashMap")]
 pub struct HashMap<K, V, S = RandomState> {
     base: base::HashMap<K, V, S>,
 }
@@ -290,15 +290,17 @@ impl RandomState {
     // rand
     #[must_use]
     pub fn new() -> RandomState {
-        thread_local!(static KEYS: Cell<(u64, u64)> = {
-            Cell::new(temp_random_generate::random())
-        });
+        // thread_local!( static KEYS: Cell<(u64, u64)> = { Cell::new(rand::random()) });
 
-        KEYS.with(|keys| {
-            let (k0, k1) = keys.get();
-            keys.set((k0.wrapping_add(1), k1));
-            RandomState { k0, k1 }
-        })
+        // KEYS.with(|keys| {
+        //     let (k0, k1) = keys.get();
+        //     keys.set((k0.wrapping_add(1), k1));
+        //     RandomState { k0, k1 }
+        // })
+        let keys: Cell<(u64, u64)> = { Cell::new((rand::random() as u64, rand::random() as u64)) };
+        let (k0, k1) = keys.get();
+        keys.set((k0.wrapping_add(1), k1));
+        RandomState { k0, k1 }
     }
 }
 
@@ -353,24 +355,5 @@ impl Default for RandomState {
     #[inline]
     fn default() -> RandomState {
         RandomState::new()
-    }
-}
-
-mod temp_random_generate {
-    use spinlock::SpinNoIrq;
-    use axhal::time::platform::current_ticks;
-    static PARK_MILLER_LEHMER_SEED: SpinNoIrq<u32> = SpinNoIrq::new(0);
-    const RAND_MAX: u64 = 2_147_483_647;
-    pub fn random() -> u128 {
-        let mut seed = PARK_MILLER_LEHMER_SEED.lock();
-        if *seed == 0 {
-            *seed = current_ticks() as u32;
-        }
-        let mut ret: u128 = 0;
-        for _ in 0..4 {
-            *seed = ((u64::from(*seed) * 48271) % RAND_MAX) as u32;
-            ret = (ret << 32) | (*seed as u128);
-        }
-        ret
     }
 }

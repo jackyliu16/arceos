@@ -338,3 +338,6 @@ pub mod io {
         pub type AxPollState;
     }
 }
+
+#[cfg(feature = "rand")]
+pub use axhal::rand;

@@ -10,13 +10,14 @@ repository = "https://github.com/rcore-os/arceos/tree/main/modules/axhal"
 documentation = "https://rcore-os.github.io/arceos/axhal/index.html"
 
 [features]
+default = []
 smp = []
+irq = []
+rand = []
 alloc = []
 fp_simd = []
-paging = ["axalloc", "page_table"]
-irq = []
 tls = ["alloc"]
-default = []
+paging = ["axalloc", "page_table"]
 
 [dependencies]
 log = "0.4"

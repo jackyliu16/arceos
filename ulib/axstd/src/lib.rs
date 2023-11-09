@@ -51,6 +51,11 @@
 #![feature(doc_auto_cfg)]
 #![feature(ip_in_core)]
 
+#![feature(const_hash)]
+#![feature(thread_local)]
+#![feature(hashmap_internals)]
+#![feature(hasher_prefixfree_extras)]
+
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
@@ -58,8 +63,10 @@ extern crate alloc;
 #[doc(no_inline)]
 pub use alloc::{boxed, collections, format, string, vec};
 
-#[cfg(feature = "hashmap")]
-extern crate collections;
+#[cfg(feature = "alloc-hashmap")]
+pub mod hashmap;
+#[cfg(feature = "alloc-hashmap")]
+pub use hashmap::HashMap;
 
 #[doc(no_inline)]
 pub use core::{arch, cell, cmp, hint, marker, mem, ops, ptr, slice, str};

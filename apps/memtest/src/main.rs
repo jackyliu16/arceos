@@ -7,7 +7,8 @@ extern crate axstd as std;
 
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 // use std::collections::{BTreeMap, HashMap};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
+use std::hashmap::HashMap;
 use std::vec::Vec;
 
 fn test_vec(rng: &mut impl RngCore) {
