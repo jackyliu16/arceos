@@ -1,6 +1,24 @@
-logo
-?
-Change settings
+mod temp_random_generate {
+    use spinlock::SpinNoIrq;
+    use crate::time;
+    static PARK_MILLER_LEHMER_SEED: SpinNoIrq<u32> = SpinNoIrq::new(0);
+    const RAND_MAX: u64 = 2_147_483_647;
+    pub fn random() -> u128 {
+        let mut seed = PARK_MILLER_LEHMER_SEED.lock();
+        if *seed == 0 {
+            *seed = time::current_ticks() as u32;
+        }
+        let mut ret: u128 = 0;
+        for _ in 0..4 {
+            *seed = ((u64::from(*seed) * 48271) % RAND_MAX) as u32;
+            ret = (ret << 32) | (*seed as u128);
+        }
+        ret
+    }
+}
+
+#[cfg(test)]
+mod tests;
 
 use self::Entry::*;
 
@@ -16,7 +34,6 @@ use crate::fmt::{self, Debug};
 use crate::hash::{BuildHasher, Hash, Hasher, SipHasher13};
 use crate::iter::FusedIterator;
 use crate::ops::Index;
-use crate::sys;
 
 /// A [hash map] implemented with quadratic probing and SIMD lookup.
 ///
@@ -25,7 +42,7 @@ use crate::sys;
 /// reasonable best-effort is made to generate this seed from a high quality,
 /// secure source of randomness provided by the host without blocking the
 /// program. Because of this, the randomness of the seed depends on the output
-/// quality of the system's random number generator when the seed is created.
+/// quality of the system's random number coroutine when the seed is created.
 /// In particular, seeds generated when the system's entropy pool is abnormally
 /// low such as during system boot may be of a lower quality.
 ///
@@ -3124,7 +3141,7 @@ impl RandomState {
         // increment one of the seeds on every RandomState creation, giving
         // every corresponding HashMap a different iteration order.
         thread_local!(static KEYS: Cell<(u64, u64)> = {
-            Cell::new(sys::hashmap_random_keys())
+            Cell::new(temp_random_generate::random())
         });
 
         KEYS.with(|keys| {
