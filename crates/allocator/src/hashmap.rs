@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod tests;
 
-use self::Entry::*;
-
 use hashbrown::hash_map as base;
 
 use core::borrow::Borrow;
@@ -10,7 +8,6 @@ use core::fmt::{self, Debug};
 #[allow(deprecated)]
 use core::hash::{BuildHasher, Hash, Hasher, SipHasher13};
 use core::ops::Index;
-use core::hash::Hash;
 
 #[cfg_attr(not(test), rustc_diagnostic_item = "HashMap")]
 pub struct HashMap<K, V, S = RandomState> {
@@ -26,6 +23,11 @@ impl<K, V> HashMap<K, V, RandomState> {
 }
 
 impl<K, V, S> HashMap<K, V, S> {
+    #[inline]
+    pub const fn with_hasher(hash_builder: S) -> HashMap<K, V, S> {
+        HashMap { base: base::HashMap::with_hasher(hash_builder) }
+    }
+
     #[inline]
     pub fn capacity(&self) -> usize {
         self.base.capacity()
@@ -56,12 +58,6 @@ where
     K: Eq + Hash,
     S: BuildHasher,
 {
-    #[inline]
-    pub const fn with_hasher(hash_builder: S) -> HashMap<K, V, S> {
-        HashMap { base: base::HashMap::with_hasher(hash_builder) }
-    }
-
-    #[stable(feature = "rust1", since = "1.0.0")]
     #[inline]
     pub fn get<Q: ?Sized>(&self, k: &Q) -> Option<&V>
     where
@@ -111,7 +107,6 @@ where
 
 }
 
-#[stable(feature = "rust1", since = "1.0.0")]
 impl<K, V, S> Clone for HashMap<K, V, S>
 where
     K: Clone,
@@ -199,34 +194,34 @@ pub struct Values<'a, K: 'a, V: 'a> {
     inner: Iter<'a, K, V>,
 }
 
-impl<K, V, S> IntoIterator for HashMap<K, V, S> {
-    type Item = (K, V);
-    type IntoIter = IntoIter<K, V>;
+// impl<K, V, S> IntoIterator for HashMap<K, V, S> {
+//     type Item = (K, V);
+//     type IntoIter = IntoIter<K, V>;
 
-    /// Creates a consuming iterator, that is, one that moves each key-value
-    /// pair out of the map in arbitrary order. The map cannot be used after
-    /// calling this.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    ///
-    /// let map = HashMap::from([
-    ///     ("a", 1),
-    ///     ("b", 2),
-    ///     ("c", 3),
-    /// ]);
-    ///
-    /// // Not possible with .iter()
-    /// let vec: Vec<(&str, i32)> = map.into_iter().collect();
-    /// ```
-    #[inline]
-    #[rustc_lint_query_instability]
-    fn into_iter(self) -> IntoIter<K, V> {
-        IntoIter { base: self.base.into_iter() }
-    }
-}
+//     /// Creates a consuming iterator, that is, one that moves each key-value
+//     /// pair out of the map in arbitrary order. The map cannot be used after
+//     /// calling this.
+//     ///
+//     /// # Examples
+//     ///
+//     /// ```
+//     /// use std::collections::HashMap;
+//     ///
+//     /// let map = HashMap::from([
+//     ///     ("a", 1),
+//     ///     ("b", 2),
+//     ///     ("c", 3),
+//     /// ]);
+//     ///
+//     /// // Not possible with .iter()
+//     /// let vec: Vec<(&str, i32)> = map.into_iter().collect();
+//     /// ```
+//     #[inline]
+//     #[rustc_lint_query_instability]
+//     fn into_iter(self) -> IntoIter<K, V> {
+//         IntoIter { base: self.base.into_iter() }
+//     }
+// }
 
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
@@ -363,13 +358,13 @@ impl Default for RandomState {
 
 mod temp_random_generate {
     use spinlock::SpinNoIrq;
-    use core::time;
+    use axhal::time::platform::current_ticks;
     static PARK_MILLER_LEHMER_SEED: SpinNoIrq<u32> = SpinNoIrq::new(0);
     const RAND_MAX: u64 = 2_147_483_647;
     pub fn random() -> u128 {
         let mut seed = PARK_MILLER_LEHMER_SEED.lock();
         if *seed == 0 {
-            *seed = time::current_ticks() as u32;
+            *seed = current_ticks() as u32;
         }
         let mut ret: u128 = 0;
         for _ in 0..4 {
