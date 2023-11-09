@@ -22,6 +22,12 @@ mod buddy;
 #[cfg(feature = "buddy")]
 pub use buddy::BuddyByteAllocator;
 
+#[cfg(feature = "hashmap")]
+mod hashmap;
+
+#[cfg(feature = "hashmap")]
+pub use hashmap::HashMap;
+
 #[cfg(feature = "slab")]
 mod slab;
 #[cfg(feature = "slab")]

@@ -4,7 +4,7 @@
 mod utils;
 
 use std::alloc::Allocator;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io::Write;
 
 use allocator::{AllocatorRc, BuddyByteAllocator, SlabByteAllocator, TlsfByteAllocator};
@@ -60,6 +60,24 @@ fn btree_map(n: usize, alloc: &(impl Allocator + Clone)) {
     drop(m);
 }
 
+fn hash_map(n: usize, alloc: &(impl Allocator + Clone)) {
+    let mut rng = SmallRng::seed_from_u64(0xdead_beef);
+    const N: usize = 50_000;
+    let mut m = HashMap::new();
+    for _ in 0..N {
+        let value = rng.next_u32();
+        let key = format!("key_{value}");
+        m.insert(key, value);
+    }
+    for (k, v) in m.iter() {
+        if let Some(k) = k.strip_prefix("key_") {
+            assert_eq!(k.parse::<u32>().unwrap(), *v);
+        }
+    }
+    m.clear();
+    drop(m);
+}
+
 fn bench(c: &mut Criterion, alloc_name: &str, alloc: impl Allocator + Clone) {
     let mut g = c.benchmark_group(alloc_name);
     g.bench_function("vec_push_3M", |b| {
@@ -73,6 +91,9 @@ fn bench(c: &mut Criterion, alloc_name: &str, alloc: impl Allocator + Clone) {
         b.iter(|| vec_rand_free(black_box(7_500), black_box(520), &alloc));
     });
     g.bench_function("btree_map_50K", |b| {
+        b.iter(|| btree_map(black_box(50_000), &alloc));
+    });
+    g.bench_function("hash_map", |b| {
         b.iter(|| btree_map(black_box(50_000), &alloc));
     });
 }
