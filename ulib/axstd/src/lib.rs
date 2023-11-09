@@ -58,6 +58,9 @@ extern crate alloc;
 #[doc(no_inline)]
 pub use alloc::{boxed, collections, format, string, vec};
 
+#[cfg(feature = "hashmap")]
+extern crate collections;
+
 #[doc(no_inline)]
 pub use core::{arch, cell, cmp, hint, marker, mem, ops, ptr, slice, str};
 

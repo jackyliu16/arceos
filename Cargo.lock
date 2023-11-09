@@ -28,11 +28,9 @@ dependencies = [
  "bitmap-allocator",
  "buddy_system_allocator",
  "criterion",
- "hashbrown",
  "rand",
  "rlsf",
  "slab_allocator",
- "spinlock",
 ]
 
 [[package]]
