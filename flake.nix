@@ -88,7 +88,10 @@
               openssl
               pkg-config
               fd
+              # Development tools
               ripgrep
+              fzf
+              zellij
               # Rust Configuraiton  
               zlib
               rustup

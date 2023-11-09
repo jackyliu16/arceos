@@ -10,6 +10,11 @@
 
 #![no_std]
 #![feature(result_option_inspect)]
+#![feature(thread_local)]
+#![feature(hashmap_internals)]
+#![feature(rustc_attrs)]
+#![feature(hasher_prefixfree_extras)]
+
 #![cfg_attr(feature = "allocator_api", feature(allocator_api))]
 
 #[cfg(feature = "bitmap")]
