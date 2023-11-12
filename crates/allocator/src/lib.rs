@@ -22,6 +22,12 @@ mod buddy;
 #[cfg(feature = "buddy")]
 pub use buddy::BuddyByteAllocator;
 
+#[cfg(feature = "early")]
+mod early;
+
+#[cfg(feature = "early")]
+pub use early::EarlyAllocator;
+
 #[cfg(feature = "slab")]
 mod slab;
 #[cfg(feature = "slab")]
