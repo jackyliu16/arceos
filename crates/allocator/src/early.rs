@@ -1,17 +1,23 @@
+//! A simple Early Allocator
+//! Base on the homeworks need, the implement are as follow
+//! 1. Byte allocator will not auto deallocate, it will only deallocate when used bytes is 0
+//! 2. Page Allocator will not deallocate
+//! TODO: implement auto deallocate
 
 use core::alloc::Layout;
 use core::ptr::NonNull;
-use crate::{AllocError, AllocResult, BaseAllocator, ByteAllocator};
-use crate::buddy::linked_list::LinkedList;
+use crate::{AllocError, AllocResult, BaseAllocator, ByteAllocator, PageAllocator};
+use crate::hole::HoleList;
+use buddy_system_allocator::linked_list::LinkedList;
 
-pub star
+const ORDER: usize = 2;
 
-pub struct EarlyAllocator {
-    /// the list contains all mem block available
-    free_blocks_list: LinkedList,
-    /// total mem block control by this allocator: protect from dealloc uncontroled memory block
-    total_blocks_list: LinkedList,
+pub struct EarlyAllocator<const PAGE_SIZE: usize> {
+    bytePointer: usize, 
+    heap: Heap<32>,
 
+    /// control boundary of this allocator
+    boundary: (usize, usize)
     // TODO If should contains this variables ?
     /// the mem has been allocated
     allocated: usize,
@@ -19,31 +25,28 @@ pub struct EarlyAllocator {
     total: usize,
 }
 
-impl EarlyAllocator {
+impl<const PAGE_SIZE: usize> EarlyAllocator<PAGE_SIZE> {
     pub const fn new() -> Self {
-        todo!()
+        Self {
+            bytePointer: 0,
+            heap: Heap::<32>::new(),
+            boundary: (0, 0),
+            allocated: 0,
+            total: 0,
+        }
     }
 }
 
-impl EarlyAllocator for BuddyByteAllocator {
+impl<const PAGE_SIZE: usize> BaseAllocator for EarlyAllocator<PAGE_SIZE> {
     fn init(&mut self, start: usize, size: usize) {
-        todo!()
-    }
-    fn add_memory(&mut self, start: usize, size: usize) {
-        todo!()
-    }
-}
-
-impl BaseAllocator for EarlyAllocator {
-    fn init(&mut self, start: usize, size: usize) {
-        todo!()
+        // Convert start & size to Layout for the need of holes
     }
     fn add_memory(&mut self, _start: usize, _size: usize) -> AllocResult {
         Err(AllocError::NoMemory)
     }
 }
 
-impl ByteAllocator for EarlyAllocator {
+impl<const PAGE_SIZE: usize> ByteAllocator for EarlyAllocator<PAGE_SIZE> {
     fn alloc(&mut self, layout: Layout) -> AllocResult<NonNull<u8>> {
         todo!()
     }
@@ -61,7 +64,7 @@ impl ByteAllocator for EarlyAllocator {
     }
 }
 
-impl<const PAGE_SIZE: usize> PageAllocator for EarlyAllocator {
+impl<const PAGE_SIZE: usize> PageAllocator for EarlyAllocator<PAGE_SIZE> {
     const PAGE_SIZE: usize = PAGE_SIZE;
 
     fn alloc_pages(&mut self, num_pages: usize, align_pow2: usize) -> AllocResult<usize> {
@@ -79,6 +82,5 @@ impl<const PAGE_SIZE: usize> PageAllocator for EarlyAllocator {
     fn available_pages(&self) -> usize {
         todo!()
     }
-
 }
 

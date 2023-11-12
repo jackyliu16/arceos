@@ -17,7 +17,7 @@ mod bitmap;
 #[cfg(feature = "bitmap")]
 pub use bitmap::BitmapPageAllocator;
 
-#[cfg(any(feature = "buddy", feature = "early"))]
+#[cfg(feature = "buddy")]
 mod buddy;
 #[cfg(feature = "buddy")]
 pub use buddy::BuddyByteAllocator;
@@ -28,7 +28,7 @@ mod early;
 #[cfg(feature = "early")]
 pub use early::EarlyAllocator;
 #[cfg(feature = "early")]
-pub use buddy::linked_list;
+pub use linked_list_allocator::hole;
 
 #[cfg(feature = "slab")]
 mod slab;
