@@ -25,10 +25,12 @@ name = "allocator"
 version = "0.1.0"
 dependencies = [
  "allocator",
+ "axlog",
  "bitmap-allocator",
  "buddy_system_allocator",
  "criterion",
  "linked_list_allocator",
+ "log",
  "rand",
  "rlsf",
  "slab_allocator",
@@ -249,6 +251,7 @@ version = "0.1.0"
 dependencies = [
  "allocator",
  "axerrno",
+ "axlog",
  "cfg-if",
  "log",
  "memory_addr",
