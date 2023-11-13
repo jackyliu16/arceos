@@ -92,6 +92,7 @@
               ripgrep
               fzf
               zellij
+	            helix
               # Rust Configuraiton  
               zlib
               rustup
