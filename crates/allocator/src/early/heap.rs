@@ -25,8 +25,7 @@ impl<const PAGE_SIZE: usize> Heap<PAGE_SIZE> {
     } 
     /// NOTE: haven't check
     pub fn count(&self) -> usize {
-        not_implemented!("count");
-        0
+        self.addrs.count()
     }
     pub fn get_head(&self) -> usize {
         for addr in self.addrs.iter() {

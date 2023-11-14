@@ -63,7 +63,7 @@ impl<const PAGE_SIZE: usize> ByteAllocator for EarlyAllocator<PAGE_SIZE> {
         let p = unsafe { NonNull::new_unchecked((self.boundary.0 + self.used_bytes) as *mut u8) };
         self.used_bytes += layout.size();
         self.user += 1;
-        dbg!("allocate [{:x}, {:x})", 
+        axlog::trace!("allocate [{:x}, {:x})", 
             self.boundary.0 + self.used_bytes,
             self.boundary.0 + self.used_bytes + layout.size(),
         );
@@ -127,8 +127,7 @@ impl<const PAGE_SIZE: usize> PageAllocator for EarlyAllocator<PAGE_SIZE> {
         0
     }
     fn used_pages(&self) -> usize {
-        not_implemented!("used_pages");
-        0
+        self.heap.count()
     }
     fn available_pages(&self) -> usize {
         not_implemented!("available_pages");

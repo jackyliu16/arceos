@@ -1,7 +1,5 @@
 //! A linked_list Copy from buddy_system_allocator::linked_list::LinkedList
-//! provide more method then previous.
-
-//! Provide the intrusive LinkedList
+//! provide more method then previous intrusive LinkedList.
 
 use core::marker::PhantomData;
 use core::{fmt, ptr};
@@ -66,6 +64,10 @@ impl LinkedList {
             curr: self.head,
             list: PhantomData,
         }
+    }
+
+    pub fn count(&self) -> usize {
+        self.iter().count()
     }
 }
 
