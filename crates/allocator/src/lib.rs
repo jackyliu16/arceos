@@ -27,8 +27,6 @@ mod early;
 
 #[cfg(feature = "early")]
 pub use early::EarlyAllocator;
-#[cfg(feature = "early")]
-pub use linked_list_allocator::hole;
 
 #[cfg(feature = "slab")]
 mod slab;

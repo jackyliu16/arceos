@@ -45,7 +45,7 @@ impl<const PAGE_SIZE: usize> EarlyAllocator<PAGE_SIZE> {
 impl<const PAGE_SIZE: usize> BaseAllocator for EarlyAllocator<PAGE_SIZE> {
     fn init(&mut self, start: usize, size: usize) {
         self.boundary = (start, start + size);
-        self.heap.init(start + size / 2, start + size);
+        self.heap.init(start + size / 2, size);
         dbg!("init baseAllocator with [{:x}, {:x})", start + size / 2, start + size);
     }
     fn add_memory(&mut self, _start: usize, _size: usize) -> AllocResult {
@@ -93,16 +93,21 @@ impl<const PAGE_SIZE: usize> PageAllocator for EarlyAllocator<PAGE_SIZE> {
     fn alloc_pages(&mut self, num_pages: usize, align_pow2: usize) -> AllocResult<usize> {
         // find first pages start addrs
         // BUG: haven't consider about request about more mem
-        let (l, r) = (
-            self.boundary.0,
-            core::cmp::min(
-                self.heap.get_head(),
-                self.boundary.1,
-            )
-        );
-        dbg!("l: {l:x}");
-        dbg!("r: {r:x}");
-        let addr = find_rightest_matcher(l, r, align_pow2, num_pages * PAGE_SIZE)?;
+        // let (l, r) = (
+        //     self.boundary.0,
+        //     core::cmp::min(
+        //         self.heap.get_head(),
+        //         self.boundary.1,
+        //     )
+        // );
+        // dbg!("l: {l:x}");
+        // dbg!("r: {r:x}");
+        // let addr = find_rightest_matcher(l, r, align_pow2, num_pages * PAGE_SIZE)?;
+        // TODO: what if dealloc in part? e.g alloc 3 page, and dealloc one by one ?
+        let addr = self.heap.allocate(
+            Layout::from_size_align(PAGE_SIZE * num_pages, align_pow2)
+                .map_err(|e| AllocError::InvalidParam)?
+            )?;
 
         // NOTE: I have no ideas but it just not working.
         // let _ = (0..=num_pages)
@@ -110,46 +115,45 @@ impl<const PAGE_SIZE: usize> PageAllocator for EarlyAllocator<PAGE_SIZE> {
         //         dbg!("allocate {:x}", addr + x * PAGE_SIZE);
         //         self.heap.push(addr + x * PAGE_SIZE);
         //     });
-        for i in 0..num_pages {
-            dbg!("{i}: allocate {:x}", addr + i * PAGE_SIZE);
-            self.heap.push(addr + i * PAGE_SIZE);
-        }
-        dbg!("=======ONE FINISH==========");
-        Ok(addr)
+        // for i in 0..num_pages {
+        //     dbg!("{i}: allocate {:x}", addr + i * PAGE_SIZE);
+        //     self.heap.push(addr + i * PAGE_SIZE);
+        // }
+        // dbg!("=======ONE FINISH==========");
+        Ok(addr.as_ptr() as usize)
     }
     fn dealloc_pages(&mut self, pos: usize, num_pages: usize) { 
         not_implemented!("dealloc_pages");
     }
     fn total_pages(&self) -> usize {
-        not_implemented!("total_pages");
-        0
+        self.heap.size()
     }
     fn used_pages(&self) -> usize {
-        self.heap.count()
+        self.heap.used()
     }
     fn available_pages(&self) -> usize {
-        not_implemented!("available_pages");
-        0
+        self.heap.free()
     }
 }
 
-/// find the rightest addr which satisfy with page allocate and align_pows 
-fn find_rightest_matcher(start: usize, end: usize, align_pow2: usize, allocate_size: usize) -> AllocResult<usize> {
-    // match align (right first)
-    let mut align_match = end + align_pow2 - end % align_pow2;
-    // match page size
-    let pages_match = end - allocate_size;
-
-    while pages_match > start && align_match > start {
-        axlog::trace!("align_match: {align_match:x}");
-        axlog::trace!("pages_match: {pages_match:x}");
-
-        if pages_match < align_match {
-            // find left one
-            align_match = pages_match - pages_match % align_pow2
-        } else {
-            return Ok(pages_match);
-        }
-    }
-    Err(AllocError::NoMemory)
-}
+// `/// find the rightest addr which satisfy with page allocate and align_pows 
+// `fn find_rightest_matcher(start: usize, end: usize, align_pow2: usize, allocate_size: usize) -> AllocResult<usize> {
+// `    // match align (right first)
+// `    let mut align_match = end + align_pow2 - end % align_pow2;
+// `    // match page size
+// `    let pages_match = end - allocate_size;
+// `
+// `    while pages_match > start && align_match > start {
+// `        axlog::trace!("align_match: {align_match:x}");
+// `        axlog::trace!("pages_match: {pages_match:x}");
+// `
+// `        if pages_match < align_match {
+// `            // find left one
+// `            align_match = pages_match - pages_match % align_pow2
+// `        } else {
+// `            return Ok(pages_match);
+// `        }
+// `    }
+// `    Err(AllocError::NoMemory)
+// `}
+// `

@@ -2,9 +2,8 @@
 #[macro_use]
 mod mymacro;
 
-mod heap;
-
-mod linked_list;
+mod holes;
+pub mod heap;
 
 mod early;
 

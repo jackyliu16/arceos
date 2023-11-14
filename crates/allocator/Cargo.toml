@@ -19,7 +19,7 @@ tlsf = ["dep:rlsf"]
 slab = ["dep:slab_allocator"]
 buddy = ["dep:buddy_system_allocator"]
 # TODO clean
-early = ["dep:linked_list_allocator", "dep:buddy_system_allocator", "dep:axlog"]
+early = ["dep:buddy_system_allocator", "dep:axlog"]
 
 allocator_api = []
 
@@ -28,7 +28,6 @@ buddy_system_allocator = { version = "0.9", default-features = false, optional =
 slab_allocator = { path = "../slab_allocator", optional = true }
 rlsf = { version = "0.2", optional = true }
 bitmap-allocator = { git = "https://github.com/rcore-os/bitmap-allocator.git", rev = "88e871a", optional = true }
-linked_list_allocator = { version = "0.10.5", optional = true }
 axlog = { path = "../../modules/axlog", optional = true }
 log = "0.4"
 
