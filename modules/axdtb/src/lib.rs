@@ -52,6 +52,30 @@ pub fn parse_dtb(dtb_pa: usize) -> Result<DtbInfo, DtbError> {
 	let ram_size = u64::from_be_bytes(size_slice.try_into().unwrap());
     info!("{ram_start:x}, {ram_size:x}");
 
+    let virtio_mmio = dtb.get_property("/soc", "virtio_mmio");
+
+
+    info!("==================================================");
+    for item in dtb.enum_properties("/") {
+        info!("{item}");
+    }
+    info!("==================================================");
+    for item in dtb.enum_subnodes("/") {
+        info!("{item}");
+        for subnode in dtb.enum_subnodes(item) {
+            info!("\t{subnode}");
+            let part: Vec<_> = subnode.split('@').collect();
+            info!("{part:?}");
+            let mut str = String::from("/");
+            str.push_str(item);
+            str.push_str("/");
+            str.push_str(subnode);
+            info!("str: {str}");
+            for pro in dtb.enum_properties(str.as_str()) {
+                info!("\t\t{pro}");
+            }
+        }
+    }
     Ok(DtbInfo::new())
 }
 
