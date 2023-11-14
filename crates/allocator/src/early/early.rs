@@ -7,21 +7,25 @@
 use core::alloc::Layout;
 use core::ptr::NonNull;
 use crate::{AllocError, AllocResult, BaseAllocator, ByteAllocator, PageAllocator};
-use super::heap::Heap;
+use bitmap_allocator::BitAlloc;
+use crate::{align_up, align_down};
 
+// Support max 1M * 4096 = 4GB memory.
+type BitAllocUsed = bitmap_allocator::BitAlloc1M;
 
 pub struct EarlyAllocator<const PAGE_SIZE: usize> {
-    used_bytes: usize, 
     /// the counter of how many times has calling for byte allocator
+    used_bytes: usize, 
     /// if this pointer back to 0 -> deallocate all mem for byte allocator
     user: usize,
-    heap: Heap<32>,
 
     /// control boundary of this allocator
     boundary: (usize, usize),
-    // TODO If should contains this variables ?
-    /// the mem control by this allocator 
-    total: usize,
+
+    base: usize,
+    total_pages: usize,
+    used_pages: usize,
+    inner: BitAllocUsed,
 }
 
 impl<const PAGE_SIZE: usize> EarlyAllocator<PAGE_SIZE> {
@@ -29,24 +33,40 @@ impl<const PAGE_SIZE: usize> EarlyAllocator<PAGE_SIZE> {
         Self {
             used_bytes: 0,
             user: 0,
-            heap: Heap::<32>::new(),
             boundary: (0, 0),
-            total: 0,
+            base: 0,
+            used_pages: 0,
+            total_pages: 0,
+            inner: BitAllocUsed::DEFAULT,
         }
     }
     /// check if the allocator of bytes and pages will collision
     /// return true if will collision
+    // #[deprecated]
     fn collision_detection(&self, layout: Layout) -> bool {
+        // dbg!("collision_detection");
         // BC only page allocator will not be able to add more mem
-        self.used_bytes + self.boundary.0 + layout.size() > self.heap.boundary().0 
+        // self.used_bytes + self.boundary.0 + layout.size() > self.heap.boundary().0 
+        // dbg!("{:x} {:x} {:x} {:x}", self.used_bytes, self.boundary.0, layout.size(), self.total_bytes());
+        self.used_bytes + self.boundary.0 + layout.size() > self.base
     }
 }
 
 impl<const PAGE_SIZE: usize> BaseAllocator for EarlyAllocator<PAGE_SIZE> {
     fn init(&mut self, start: usize, size: usize) {
+        // global
         self.boundary = (start, start + size);
-        self.heap.init(start + size / 2, size);
-        dbg!("init baseAllocator with [{:x}, {:x})", start + size / 2, start + size);
+        dbg!("Init Early Allocator at [{:x}, {:x})", start, start + size);
+
+        // page allocate
+        let start = start + size / 2;
+        assert!(PAGE_SIZE.is_power_of_two());
+        let end = align_down(start + size, PAGE_SIZE);
+        let start = align_up(start, PAGE_SIZE);
+        self.base = start;
+        self.total_pages = (end - start) / PAGE_SIZE;
+        self.inner.insert(0..self.total_pages);
+        dbg!("Init Bitmap Allocator at [{:x}, {:x})", self.base, start + size / 2);
     }
     fn add_memory(&mut self, _start: usize, _size: usize) -> AllocResult {
         todo!()
@@ -78,7 +98,7 @@ impl<const PAGE_SIZE: usize> ByteAllocator for EarlyAllocator<PAGE_SIZE> {
     }
     fn total_bytes(&self) -> usize { 
         // all memory which haven't been allocate to heap will be in bytes allocate
-        self.heap.boundary().0 - self.boundary.0 
+        (self.boundary.1 - self.boundary.0 ) >> 1
     }
     fn used_bytes(&self) -> usize { self.used_bytes }
     fn available_bytes(&self) -> usize {
@@ -91,69 +111,61 @@ impl<const PAGE_SIZE: usize> PageAllocator for EarlyAllocator<PAGE_SIZE> {
 
     /// allocate num_pages page with align in align_pow2
     fn alloc_pages(&mut self, num_pages: usize, align_pow2: usize) -> AllocResult<usize> {
-        // find first pages start addrs
-        // BUG: haven't consider about request about more mem
-        // let (l, r) = (
-        //     self.boundary.0,
-        //     core::cmp::min(
-        //         self.heap.get_head(),
-        //         self.boundary.1,
-        //     )
-        // );
-        // dbg!("l: {l:x}");
-        // dbg!("r: {r:x}");
-        // let addr = find_rightest_matcher(l, r, align_pow2, num_pages * PAGE_SIZE)?;
-        // TODO: what if dealloc in part? e.g alloc 3 page, and dealloc one by one ?
-        let addr = self.heap.allocate(
-            Layout::from_size_align(PAGE_SIZE * num_pages, align_pow2)
-                .map_err(|e| AllocError::InvalidParam)?
-            )?;
-
-        // NOTE: I have no ideas but it just not working.
-        // let _ = (0..=num_pages)
-        //     .map(|x| {
-        //         dbg!("allocate {:x}", addr + x * PAGE_SIZE);
-        //         self.heap.push(addr + x * PAGE_SIZE);
-        //     });
-        // for i in 0..num_pages {
-        //     dbg!("{i}: allocate {:x}", addr + i * PAGE_SIZE);
-        //     self.heap.push(addr + i * PAGE_SIZE);
-        // }
-        // dbg!("=======ONE FINISH==========");
-        Ok(addr.as_ptr() as usize)
+        dbg!("alloc_pages");
+        if align_pow2 % PAGE_SIZE != 0 {
+            return Err(AllocError::InvalidParam);
+        }
+        let align_pow2 = align_pow2 / PAGE_SIZE;
+        if !align_pow2.is_power_of_two() {
+            return Err(AllocError::InvalidParam);
+        }
+        let align_log2 = align_pow2.trailing_zeros() as usize;
+        match num_pages.cmp(&1) {
+            core::cmp::Ordering::Equal => self.inner.alloc().map(|idx| idx * PAGE_SIZE + self.base),
+            core::cmp::Ordering::Greater => self
+                .inner
+                .alloc_contiguous(num_pages, align_log2)
+                .map(|idx| idx * PAGE_SIZE + self.base),
+            _ => return Err(AllocError::InvalidParam),
+        }
+        .ok_or(AllocError::NoMemory)
+        .inspect(|_| self.used_pages += num_pages)
     }
+
     fn dealloc_pages(&mut self, pos: usize, num_pages: usize) { 
-        not_implemented!("dealloc_pages");
+        self.used_pages -= num_pages;
+        self.inner.dealloc((pos - self.base) / PAGE_SIZE)
     }
     fn total_pages(&self) -> usize {
-        self.heap.size()
+        self.total_pages
     }
     fn used_pages(&self) -> usize {
-        self.heap.used()
+        self.used_pages
     }
     fn available_pages(&self) -> usize {
-        self.heap.free()
+        self.total_pages - self.used_pages
     }
 }
 
-// `/// find the rightest addr which satisfy with page allocate and align_pows 
-// `fn find_rightest_matcher(start: usize, end: usize, align_pow2: usize, allocate_size: usize) -> AllocResult<usize> {
-// `    // match align (right first)
-// `    let mut align_match = end + align_pow2 - end % align_pow2;
-// `    // match page size
-// `    let pages_match = end - allocate_size;
-// `
-// `    while pages_match > start && align_match > start {
-// `        axlog::trace!("align_match: {align_match:x}");
-// `        axlog::trace!("pages_match: {pages_match:x}");
-// `
-// `        if pages_match < align_match {
-// `            // find left one
-// `            align_match = pages_match - pages_match % align_pow2
-// `        } else {
-// `            return Ok(pages_match);
-// `        }
-// `    }
-// `    Err(AllocError::NoMemory)
-// `}
-// `
+#[deprecated]
+fn find_rightest_matcher(start: usize, end: usize, align_pow2: usize, allocate_size: usize) -> AllocResult<usize> {
+    dbg!("find_rightest_matcher");
+    // match align (right first)
+    let mut align_match = end + align_pow2 - end % align_pow2;
+    // match page size
+    let pages_match = end - allocate_size;
+
+    while pages_match > start && align_match > start {
+        axlog::trace!("align_match: {align_match:x}");
+        axlog::trace!("pages_match: {pages_match:x}");
+
+        if pages_match < align_match {
+            // find left one
+            align_match = pages_match - pages_match % align_pow2
+        } else {
+            return Ok(pages_match);
+        }
+    }
+    Err(AllocError::NoMemory)
+}
+
