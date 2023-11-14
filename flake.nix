@@ -92,7 +92,6 @@
               ripgrep
               fzf
               zellij
-	            helix
               # Rust Configuraiton  
               zlib
               rustup
@@ -113,6 +112,7 @@
 
             shellHook = ''
               alias find=fd
+              export SHELL=zsh
 
               # Change the mirror of rust
               export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
