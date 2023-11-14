@@ -4,37 +4,11 @@
 //! 2. Page Allocator will not deallocate
 //! TODO: implement auto deallocate
 
-#![allow(unused_imports, unused_variables, dead_code)]
 use core::alloc::Layout;
 use core::ptr::NonNull;
 use crate::{AllocError, AllocResult, BaseAllocator, ByteAllocator, PageAllocator};
-use crate::hole::HoleList;
-// use buddy_system_allocator::Heap;
-use heap_handler::Heap;
+use super::heap::Heap;
 
-macro_rules! not_implemented {
-    // () => {
-    //     axlog::debug!("Warn: unimplement function: {}", stringify!(callsite));
-    // };
-    ($message:expr) => {
-       axlog::debug!("Warn: unimplement function: {}", $message);
-    };
-}
-// 想整个能显示函数名称的宏，但是给GPT骗了
-macro_rules! dbg {
-    () => {
-        // axlog::debug!("Call {}", stringify!(callsite));
-        axlog::debug!("");
-    };
-    ($message:ident) => {
-        // let callsite = stringify!(callsite);
-        // axlog::debug!("{}: {}", stringify!(callsite), $message);
-        axlog::debug!("{}", $message);
-    };
-    ($($arg:tt)*) => {
-        axlog::debug!("{}", format_args!("{}", format_args!($($arg)*)));
-    }
-}
 
 pub struct EarlyAllocator<const PAGE_SIZE: usize> {
     used_bytes: usize, 
@@ -129,7 +103,6 @@ impl<const PAGE_SIZE: usize> PageAllocator for EarlyAllocator<PAGE_SIZE> {
         dbg!("l: {l:x}");
         dbg!("r: {r:x}");
         let addr = find_rightest_matcher(l, r, align_pow2, num_pages * PAGE_SIZE)?;
-        dbg!("alloc page addr: {addr:x} page num: {num_pages}");
 
         // NOTE: I have no ideas but it just not working.
         // let _ = (0..=num_pages)
@@ -145,60 +118,19 @@ impl<const PAGE_SIZE: usize> PageAllocator for EarlyAllocator<PAGE_SIZE> {
         Ok(addr)
     }
     fn dealloc_pages(&mut self, pos: usize, num_pages: usize) { 
-        not_implemented!("dealloc_pages")
+        not_implemented!("dealloc_pages");
     }
     fn total_pages(&self) -> usize {
         not_implemented!("total_pages");
         0
     }
     fn used_pages(&self) -> usize {
-        not_implemented!("used_pages");
-        0
+        self.heap.count()
     }
     fn available_pages(&self) -> usize {
         not_implemented!("available_pages");
         0
     }
-}
-
-mod heap_handler {
-    use buddy_system_allocator::linked_list::LinkedList;
-
-    /// A simple single linked list heap
-    pub struct Heap<const PAGE_SIZE: usize> {
-        /// the addrs of each pages block start
-        addrs: LinkedList,
-        boundary: (usize, usize),
-    }
-
-    impl<const PAGE_SIZE: usize> Heap<PAGE_SIZE> {
-        pub const fn new() -> Self {
-            Self {
-                addrs: LinkedList::new(),
-                boundary: (0, 0),
-            }
-        }
-        pub fn boundary(&self) -> (usize, usize) { self.boundary }
-        /// init the heap with (start, end]
-        pub fn init(&mut self, start: usize, end: usize) {
-            log::debug!("init heap with ({start:x}, {end:x})");
-            self.boundary = (start, end)
-        }
-        pub fn push(&mut self, item: usize) {
-            unsafe { self.addrs.push(item as *mut usize) };
-        } 
-        /// NOTE: haven't check
-        pub fn count(&self) -> usize {
-            not_implemented!("count");
-            0
-        }
-        pub fn get_head(&self) -> usize {
-            for addr in self.addrs.iter() {
-                return addr as usize;
-            }
-            usize::MAX
-        }
-    } 
 }
 
 /// find the rightest addr which satisfy with page allocate and align_pows 
