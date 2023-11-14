@@ -22,6 +22,8 @@
 #[macro_use]
 extern crate axlog;
 
+use axdtb::parse_dtb;
+
 #[cfg(all(target_os = "none", not(test)))]
 mod lang_items;
 mod trap;
@@ -104,6 +106,7 @@ fn is_init_ok() -> bool {
 #[cfg_attr(not(test), no_mangle)]
 pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
     ax_println!("{}", LOGO);
+    ax_println!("{}, {}", cpu_id, dtb);
     ax_println!(
         "\
         arch = {}\n\
@@ -139,6 +142,20 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
 
     #[cfg(feature = "alloc")]
     init_allocator();
+
+    debug!("{dtb}");
+    let dtb_info = match parse_dtb(dtb.into()) {
+        Ok(info) => info,
+        Err(e) => panic!("Bad dtb {:?}", e),
+    };
+
+    info!("DTB info: ====================================================");
+    info!("Memory: {:#x}, Size: {:#x}", dtb_info.memory_addr, dtb_info.memory_size);
+    info!("Virtio_mmio[{}]:", dtb_info.mmio_regions.len());
+    for r in dtb_info.mmio_regions {
+        info!("\t{:#x}, size: {:#x}", r.0, r.1);
+    }
+    info!("==============================================================");
 
     #[cfg(feature = "paging")]
     {
