@@ -88,7 +88,7 @@ impl<const PAGE_SIZE: usize> ByteAllocator for EarlyAllocator<PAGE_SIZE> {
         let p = unsafe { NonNull::new_unchecked((self.boundary.0 + self.used_bytes) as *mut u8) };
         self.used_bytes += layout.size();
         self.user += 1;
-        dbg!("allocate [{:x}, {:x})", 
+        axlog::trace!("allocate [{:x}, {:x})", 
             self.boundary.0 + self.used_bytes,
             self.boundary.0 + self.used_bytes + layout.size(),
         );

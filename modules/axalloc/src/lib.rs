@@ -49,23 +49,23 @@ impl GlobalAllocator {
     /// Allocate arbitrary number of bytes. Returns the left bound of the
     /// allocated region.
     pub fn alloc(&self, layout: Layout) -> AllocResult<NonNull<u8>> {
-        axlog::debug!("GlobalAllocator::alloc");
+        axlog::trace!("GlobalAllocator::alloc");
         self.inner.lock().alloc(layout)
     }
     /// Gives back the allocated region to the byte allocator.
     pub fn dealloc(&self, pos: NonNull<u8>, layout: Layout) {
-        axlog::debug!("GlobalAllocator::dealloc");
+        axlog::trace!("GlobalAllocator::dealloc");
         self.inner.lock().dealloc(pos, layout)
     }
     /// Allocates contiguous pages.
     pub fn alloc_pages(&self, num_pages: usize, align_pow2: usize) -> AllocResult<usize> {
-        axlog::debug!("GlobalAllocator::alloc_pages");
+        axlog::trace!("GlobalAllocator::alloc_pages");
         self.inner.lock().alloc_pages(num_pages, align_pow2)
     }
     /// Gives back the allocated pages starts from `pos` to the page allocator.
     /// [`alloc_pages`]: GlobalAllocator::alloc_pages
     pub fn dealloc_pages(&self, pos: usize, num_pages: usize) {
-        axlog::debug!("GlobalAllocator::dealloc_pages");
+        axlog::trace!("GlobalAllocator::dealloc_pages");
         self.inner.lock().dealloc_pages(pos, num_pages)
     }
     /// Returns the number of allocated bytes in the byte allocator.
