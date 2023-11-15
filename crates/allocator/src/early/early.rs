@@ -42,12 +42,9 @@ impl<const PAGE_SIZE: usize> EarlyAllocator<PAGE_SIZE> {
     }
     /// check if the allocator of bytes and pages will collision
     /// return true if will collision
-    // #[deprecated]
+    #[deprecated]
     fn collision_detection(&self, layout: Layout) -> bool {
-        // dbg!("collision_detection");
         // BC only page allocator will not be able to add more mem
-        // self.used_bytes + self.boundary.0 + layout.size() > self.heap.boundary().0 
-        // dbg!("{:x} {:x} {:x} {:x}", self.used_bytes, self.boundary.0, layout.size(), self.total_bytes());
         self.used_bytes + self.boundary.0 + layout.size() > self.base
     }
 }
