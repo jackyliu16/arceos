@@ -248,6 +248,7 @@ version = "0.1.0"
 dependencies = [
  "allocator",
  "axerrno",
+ "axlog",
  "cfg-if",
  "log",
  "memory_addr",
@@ -986,6 +987,10 @@ dependencies = [
  "cc",
  "libc",
 ]
+
+[[package]]
+name = "ex5"
+version = "0.1.0"
 
 [[package]]
 name = "fatfs"
