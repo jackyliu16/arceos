@@ -153,7 +153,7 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
     info!("Memory: {:#x}, Size: {:#x}", dtb_info.memory_addr, dtb_info.memory_size);
     info!("Virtio_mmio[{}]:", dtb_info.mmio_regions.len());
     for r in dtb_info.mmio_regions {
-        info!("\t{:#x}, size: {:#x}", r.0, r.1);
+        info!("\t{}, size: 0x{}", r.0, r.1);
     }
     info!("==============================================================");
 

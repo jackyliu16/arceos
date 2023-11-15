@@ -17,17 +17,17 @@ use hermit_dtb::Dtb;
 
 
 pub struct DtbInfo {
-    pub memory_addr: usize,
-    pub memory_size: usize, 
-    pub mmio_regions: Vec<(usize, usize)>,
+    pub memory_addr: u64,
+    pub memory_size: u64, 
+    pub mmio_regions: Vec<(String, String)>,
 } 
 
 impl DtbInfo {
-    pub fn new() -> Self {
+    pub fn new(addr: u64, size: u64, regions: Vec<(String, String)>) -> Self {
         Self {
-            memory_addr: 0,
-            memory_size: 0,
-            mmio_regions: Vec::new(),
+            memory_addr: addr,
+            memory_size: size,
+            mmio_regions: regions,
         }
     }
 }
@@ -43,40 +43,64 @@ pub fn parse_dtb(dtb_pa: usize) -> Result<DtbInfo, DtbError> {
 		let device_type = core::str::from_utf8(device_type)
 			.unwrap()
 			.trim_matches(char::from(0));
-        info!("device_type: {device_type}");
+        debug!("device_type: {device_type}");
 		assert!(device_type == "memory");
 	}
     let reg = dtb.get_property("/memory", "reg").unwrap();
 	let (start_slice, size_slice) = reg.split_at(core::mem::size_of::<u64>());
 	let ram_start = u64::from_be_bytes(start_slice.try_into().unwrap());
 	let ram_size = u64::from_be_bytes(size_slice.try_into().unwrap());
-    info!("{ram_start:x}, {ram_size:x}");
+    debug!("{ram_start:x}, {ram_size:x}");
 
-    let virtio_mmio = dtb.get_property("/soc", "virtio_mmio");
-
-
-    info!("==================================================");
-    for item in dtb.enum_properties("/") {
-        info!("{item}");
-    }
-    info!("==================================================");
-    for item in dtb.enum_subnodes("/") {
-        info!("{item}");
-        for subnode in dtb.enum_subnodes(item) {
-            info!("\t{subnode}");
-            let part: Vec<_> = subnode.split('@').collect();
-            info!("{part:?}");
-            let mut str = String::from("/");
-            str.push_str(item);
-            str.push_str("/");
-            str.push_str(subnode);
-            info!("str: {str}");
-            for pro in dtb.enum_properties(str.as_str()) {
-                info!("\t\t{pro}");
+    {
+        debug!("==================================================");
+        for item in dtb.enum_properties("/") {
+            debug!("{item}");
+        }
+        debug!("==================================================");
+        for item in dtb.enum_subnodes("/") {
+            debug!("{item}");
+            for subnode in dtb.enum_subnodes(item) {
+                debug!("\t{subnode}");
+                let part: Vec<_> = subnode.split('@').collect();
+                debug!("{part:?}");
+                let mut str = String::from("/");
+                str.push_str(item);
+                str.push_str("/");
+                str.push_str(subnode);
+                debug!("str: {str}");
+                for pro in dtb.enum_properties(str.as_str()) {
+                    debug!("Pro: {pro}");
+                }
             }
         }
+        debug!("==================================================");
     }
-    Ok(DtbInfo::new())
+
+    let mut vec = Vec::new();
+    for subnode in dtb.enum_subnodes("/soc") {
+        let parts: Vec<_> = subnode.split('@').collect();
+        if parts[0] != "virtio_mmio" {
+            continue;
+        }
+
+        let path = alloc::format!("/soc/{}", subnode);
+        let out = dtb.get_property(path.as_str(), "interrupts");
+        debug!("out: {:?}", out);
+        let out = dtb.get_property(path.as_str(), "interrupt-parent");
+        debug!("out: {:?}", out);
+        let out = dtb.get_property(path.as_str(), "compatible");
+        debug!("out: {:?}", out);
+        debug!("out: {:b}", u64::from_le_bytes(out.unwrap()[0..8].try_into().unwrap()));
+        let out = dtb.get_property(path.as_str(), "reg");
+        debug!("out: {:?}", out);
+        debug!("out: {:x}", u32::from_be_bytes(out.unwrap()[0..4].try_into().unwrap()));
+        debug!("out: {:x}", u32::from_be_bytes(out.unwrap()[4..8].try_into().unwrap()));
+        debug!("out: {:x}", u32::from_be_bytes(out.unwrap()[8..12].try_into().unwrap()));
+        debug!("out: {:x}", u32::from_be_bytes(out.unwrap()[12..16].try_into().unwrap()));
+        vec.push((String::from(parts[1]), alloc::format!("{:x}", u32::from_be_bytes(out.unwrap()[12..16].try_into().unwrap()))));
+    }
+    Ok(DtbInfo { memory_addr: ram_start, memory_size: ram_size, mmio_regions: vec })
 }
 
 #[derive(Debug)]
@@ -90,4 +114,14 @@ impl core::fmt::Display for DtbError {
             DtbError::SomeError => write!(f, "Failed to open device tree file"),
         }
     }
+}
+
+fn combine_to_u64(bytes: &[u8]) -> u64 {
+    let mut value = 0;
+
+    for byte in bytes {
+        value = (value << 8) | *byte as u64;
+    }
+
+    return value;
 }
