@@ -93,6 +93,7 @@
               fzf
               zellij
 	            helix
+		          tldr
               # Rust Configuraiton  
               zlib
               rustup
