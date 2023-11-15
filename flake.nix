@@ -89,6 +89,8 @@
               pkg-config
               fd
               ripgrep
+              fzf
+              zellij
               # Rust Configuraiton  
               zlib
               rustup
