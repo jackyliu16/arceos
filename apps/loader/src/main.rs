@@ -21,14 +21,6 @@ fn main() {
 
     println!("sizeByte: {byte:?}");
     
-// # ][  u16  ]  [  u16  ]
-// # ][        4B        ] [ package 1 ]
-// # ][        4B + size_of(package 1) ] [ NEXT ] 
-
-    // let code: &[u8] = unsafe { 
-    //   core::slice::from_raw_parts(apps_start.offset(size_of::<u32>() as isize), apps_size as usize) 
-    // };
-
     println!("Code Size 1: {:?}",
       unsafe {
         core::slice::from_raw_parts(apps_start.offset(size_of::<u16>() as isize),
@@ -43,7 +35,10 @@ fn main() {
       )}
     );
 
-
     // println!("content: {:?}: ", code);
     println!("Load payload ok!");
+
+    println!("Execute app ...");
+
+    
 }

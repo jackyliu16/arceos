@@ -69,7 +69,11 @@ members = [
     "apps/task/sleep",
     "apps/task/yield",
     "apps/task/priority",
-    "apps/task/tls", "playload/hello_app", "apps/loader", "playload/hello_ebreak",
+    "apps/task/tls", 
+    "apps/loader",
+    "playload/hello_app",  
+    "playload/hello_ebreak",
+    "playload/hello_nop",
 ]
 
 [profile.release]

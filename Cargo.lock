@@ -1076,6 +1076,10 @@ name = "hello_ebreak"
 version = "0.1.0"
 
 [[package]]
+name = "hello_nop"
+version = "0.1.0"
+
+[[package]]
 name = "hermit-abi"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
