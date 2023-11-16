@@ -1068,6 +1068,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "hello_app"
+version = "0.1.0"
+
+[[package]]
 name = "hermit-abi"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1205,6 +1209,13 @@ name = "linux-raw-sys"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57bcfdad1b858c2db7c38303a6d2ad4dfaf5eb53dfeb0910128b2c26d6158503"
+
+[[package]]
+name = "loader"
+version = "0.1.0"
+dependencies = [
+ "axstd",
+]
 
 [[package]]
 name = "lock_api"
