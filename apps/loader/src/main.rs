@@ -1,13 +1,15 @@
 
 #![cfg_attr(feature = "axstd", no_std)]
 #![cfg_attr(feature = "axstd", no_main)]
+use core::mem::size_of;
+
 #[cfg(feature = "axstd")]
 use axstd::println;
 const PLASH_START: usize = 0x22000000;
 #[cfg_attr(feature = "axstd", no_mangle)]
 fn main() {
     let apps_start = PLASH_START as *const u8;
-    let apps_size = 32; // Dangerous!!! We need to get accurate size of apps
+    let apps_size: usize = 32; // Dangerous!!! We need to get accurate size of apps
     println!("Load payload ...");
 
     let code = unsafe { 
