@@ -11,20 +11,39 @@ const PLASH_START: usize = 0x22000000;
 fn main() {
     let apps_start = PLASH_START as *const u8;
     let byte = unsafe {
-      core::slice::from_raw_parts(apps_start, size_of::<u32>())
+      core::slice::from_raw_parts(apps_start, size_of::<u16>())
     };
-    let apps_size = u32::from_be_bytes([byte[0], byte[1], byte[2], byte[3]]);
+    let app_size_1 = u8::from_be_bytes([byte[0]]);
+    let app_size_2 = u8::from_be_bytes([byte[1]]);
+    println!("size 1: {app_size_1}, size 2: {app_size_2}");
 
     println!("Load payload ...");
 
     println!("sizeByte: {byte:?}");
-    println!("size: {apps_size}");
+    
+// # ][  u16  ]  [  u16  ]
+// # ][        4B        ] [ package 1 ]
+// # ][        4B + size_of(package 1) ] [ NEXT ] 
 
-    let code: &[u8] = unsafe { 
-      // core::slice::from_raw_parts(apps_start.offset(size_of::<u16>() as isize), apps_size as usize) 
-      core::slice::from_raw_parts(apps_start.offset(size_of::<u32>() as isize), apps_size as usize) 
-    };
+    // let code: &[u8] = unsafe { 
+    //   core::slice::from_raw_parts(apps_start.offset(size_of::<u32>() as isize), apps_size as usize) 
+    // };
 
-    println!("content: {:?}: ", code);
+    println!("Code Size 1: {:?}",
+      unsafe {
+        core::slice::from_raw_parts(apps_start.offset(size_of::<u16>() as isize),
+        app_size_1 as usize
+      )}
+    );
+
+    println!("Code Size 2: {:?}",
+      unsafe {
+        core::slice::from_raw_parts(apps_start.offset((size_of::<u16>() + app_size_1 as usize) as isize),
+        app_size_2 as usize
+      )}
+    );
+
+
+    // println!("content: {:?}: ", code);
     println!("Load payload ok!");
 }
