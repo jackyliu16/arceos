@@ -9,10 +9,13 @@ const SYS_TERMINATE: usize = 3;
 #[no_mangle]
 unsafe extern "C" fn _start() {
     hello();
-    put_char('C');
-    put_char('A');
-    put_char('C');
-    put_char('C');
+    hello();
+    put_char('H');
+    put_char('i');
+    let a = "25";
+    put_char('!');
+
+    // puts("hello");
     terminate();
 }
 
@@ -33,6 +36,12 @@ fn hello() {
             jalr    t1",
             abi_num = const SYS_HELLO,
         )
+    }
+}
+
+fn puts(s: &str) {
+    for c in s.chars() {
+        put_char(c);
     }
 }
 

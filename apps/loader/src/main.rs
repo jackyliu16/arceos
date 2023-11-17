@@ -63,32 +63,32 @@ fn main() {
 
     println!("ORIGINAL AREAS: ");
     println!("{:?}", unsafe {
-        core::slice::from_raw_parts(apps_start, 32)
+        core::slice::from_raw_parts(
+            apps_start,
+            (app_size_1 + app_size_2 + size_of::<u16>() as u8) as usize,
+        )
     });
 
     println!("LOADING AREAS: ");
     println!("{:?}", unsafe {
-        core::slice::from_raw_parts(load_start, 32)
+        core::slice::from_raw_parts(load_start, (app_size_1 + app_size_2) as usize)
     });
 
-    println!("Execute app ...");
-    unsafe {
-        core::arch::asm!("
-      li      t2, {run_start}
-      jalr    t2",
-          run_start = const LOAD_START,
-        )
-    }
-    println!("App 1 Finish");
     register_abi(SYS_HELLO, abi_hello as usize);
     register_abi(SYS_PUTCHAR, abi_putchar as usize);
     register_abi(SYS_TERMINATE, abi_terminate as usize);
-
-    let jump_location: usize = LOAD_START + app_size_1 as usize;
     println!("Execute app ...");
+    unsafe {
+        core::arch::asm!("
+            li      t2, {run_start}
+            jalr    t2",
+            run_start = const LOAD_START,
+        )
+    }
+    println!("App 1 Finish");
 
-    // execute app
-    println!("Execute app ...");
+    let jump_location: usize = load_start as usize + app_size_1 as usize;
+    println!("jump into {jump_location:x}");
 
     // execute app
     unsafe {
@@ -101,6 +101,7 @@ fn main() {
             run_start = in(reg) jump_location
         )
     }
+    println!("App 2 Finish");
 }
 
 const SYS_HELLO: usize = 1;
