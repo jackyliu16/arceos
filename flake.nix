@@ -94,7 +94,8 @@
               zellij
               helix
               zsh
-              # unixtools.xxd
+              unixtools.xxd
+              unixtools.netstat
               # Rust Configuraiton  
               zlib
               rustup
