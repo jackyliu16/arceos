@@ -46,7 +46,7 @@ echo "size.bin: " $(stat -c%s "./size.bin")
 dd if=/dev/zero                  of=./apps.bin               bs=1M count=32
 dd if=./size.bin                 of=./apps.bin conv=notrunc
 dd if=./hello_nop/hello_nop.bin  of=./apps.bin conv=notrunc  bs=1B seek=2
-dd if=./hello_app/hello_app.bin  of=./apps.bin conv=notrunc  bs=1B seek=6 
+dd if=./hello_app/hello_app.bin  of=./apps.bin conv=notrunc  bs=1B seek=$(($hello_nop_size + 2))
 # seek=$(($hello_nop_size + 2))
 
 

@@ -9,7 +9,7 @@ use axstd::println;
 const PLASH_START: usize = 0x22000000;
 const LOAD_START: usize = 0xffff_ffc0_8010_0000;
 #[cfg_attr(feature = "axstd", no_mangle)]
-fn main() {
+fn main() -> ! {
     let apps_start = PLASH_START as *const u8;
     let byte = unsafe {
       core::slice::from_raw_parts(apps_start, size_of::<u16>())
@@ -59,10 +59,18 @@ fn main() {
     println!("1: {load_app_1:?}");
     println!("2: {load_app_2:?}");
 
+    println!("ORIGINAL AREAS: ");
+    println!("{:?}",
+      unsafe {
+        core::slice::from_raw_parts(apps_start, 32)
+      } 
+    );
+
+
     println!("LOADING AREAS: ");
     println!("{:?}",
       unsafe {
-        core::slice::from_raw_parts(load_start, (app_size_1 + app_size_2) as usize)
+        core::slice::from_raw_parts(load_start, 32)
       } 
     );
 
@@ -73,4 +81,15 @@ fn main() {
       run_start = const LOAD_START,
     )}
     println!("App 1 Finish");
+    let jump_location: usize = LOAD_START + app_size_1 as usize;
+    println!("jump to: {jump_location:x}");
+    unsafe {
+      core::arch::asm!("
+        jalr  {}
+        j     .
+        ",
+        in(reg) jump_location,
+        options(noreturn),
+      )
+    }
 }
