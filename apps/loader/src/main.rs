@@ -86,25 +86,19 @@ fn main() {
 
     let jump_location: usize = LOAD_START + app_size_1 as usize;
     println!("Execute app ...");
-    let arg0: u8 = b'A';
+
+    // execute app
+    println!("Execute app ...");
 
     // execute app
     unsafe {
         core::arch::asm!("
-        li      t0, {abi_num}
-        slli    t0, t0, 3
-        la      t1, {abi_table}
-        add     t1, t1, t0
-        ld      t1, (t1)
-        jalr    t1
-        mv      t2, {jump}
+        la      a7, {abi_table}
+        mv      t2, {run_start}
         jalr    t2
         j       .",
             abi_table = sym ABI_TABLE,
-            //abi_num = const SYS_HELLO,
-            abi_num = const SYS_PUTCHAR,
-            in("a0") arg0,
-            jump = in(reg) jump_location
+            run_start = in(reg) jump_location
         )
     }
 }
@@ -123,13 +117,15 @@ fn register_abi(num: usize, handle: usize) {
 
 fn abi_hello() {
     println!("[ABI:Hello] Hello, Apps!");
+    unsafe { core::arch::asm!("la   a7,{}", sym ABI_TABLE) }
 }
 
 fn abi_putchar(c: char) {
     println!("[ABI:Print] {c}");
+    unsafe { core::arch::asm!("la   a7,{}", sym ABI_TABLE) }
 }
 
-fn abi_terminate() {
+fn abi_terminate() -> ! {
     println!("[ABI:TERMINATE]: Shutting Down !!!");
-    arceos_api::sys::ax_terminate()
+    arceos_api::sys::ax_terminate();
 }
