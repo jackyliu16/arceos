@@ -24,12 +24,13 @@ function generateBinrary() {
 }
 
 
+generateBinrary "hello_nop"
+hello_nop_size=$?
+echo "hello_nop_size: " $hello_nop_size
+
 generateBinrary "hello_app"
 hello_app_size=$?
 echo "hello_app_size: " $hello_app_size
-generateBinrary "hello_nop"
-hello_nop_size=$?
-echo "hello_app_size: " $hello_nop_size
 
 # ][  u16  ]  [  u16  ]
 # ][        4B        ] [ package 1 ]
@@ -40,11 +41,13 @@ hex1=$(printf "%02x" $hello_nop_size)
 hex2=$(printf "%02x" $hello_app_size)
 hex="$hex1$hex2"
 echo -n $hex | xxd -r -p > size.bin
+echo "size.bin: " $(stat -c%s "./size.bin")
 
-dd if=/dev/zero                       of=./apps.bin               bs=1M count=32
-dd if=./size.bin                      of=./apps.bin conv=notrunc
-dd if=./hello_app/hello_app.bin       of=./apps.bin conv=notrunc  bs=1B seek=4
-dd if=./hello_ebreak/hello_ebreak.bin of=./apps.bin conv=notrunc  bs=1B seek=$(($hello_nop_size + 4))
+dd if=/dev/zero                  of=./apps.bin               bs=1M count=32
+dd if=./size.bin                 of=./apps.bin conv=notrunc
+dd if=./hello_nop/hello_nop.bin  of=./apps.bin conv=notrunc  bs=1B seek=2
+dd if=./hello_app/hello_app.bin  of=./apps.bin conv=notrunc  bs=1B seek=6 
+# seek=$(($hello_nop_size + 2))
 
 
 
