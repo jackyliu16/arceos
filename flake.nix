@@ -69,6 +69,7 @@
               fzf
               zellij
               # Rust Configuraiton  
+              gdb
               zlib
               rustup
               cargo-binutils
