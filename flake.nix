@@ -57,30 +57,6 @@
       in
       {
         devShells = {
-          # qemu = pkgs.mkShell {
-          #   buildInputs = with pkgs; [
-          #     vim
-          #     # exa
-          #     fd
-          #     zlib
-          #     qemu
-          #   ];
-
-          #   shellHook = ''
-          #     alias ls=exa
-          #     alias find=fd
-
-          #     # Change the mirror of rust
-          #     export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
-          #     export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
-
-          #     unset OBJCOPY # Avoiding Overlay
-          #     export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib" # nixpkgs@52447
-          #     export LD_LIBRARY_PATH="${pkgs.zlib}/lib:$LD_LIBRARY_PATH" # nixpkgs@92946
-          #     
-          #     export PATH=$PATH:$(realpath .)/.toolchain/aarch64-linux-musl-cross/bin:$(realpath .)/.toolchain/riscv64-linux-musl-cross/bin:$(realpath .)/.toolchain/x86_64-linux-musl-cross/bin/
-          #   '';
-          # };
           default = pkgs.mkShell {
             buildInputs = (with pkgs;[
               gnumake
@@ -101,14 +77,6 @@
               # Overlays part
               pkgs.qemu
             ];
-
-            # nativeBuildInputs = with pkgs; [
-            #   llvmPackages.libclang
-            #   llvmPackages.libcxxClang
-            #   clang
-            # ];
-            # LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib"; # nixpkgs@52447
-            # BINDGEN_EXTRA_CLANG_ARGS = "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.lib.getVersion pkgs.clang}/include"; # https://github.com/NixOS/nixpkgs/issues/52447#issuecomment-853429315
 
             shellHook = ''
               alias find=fd
