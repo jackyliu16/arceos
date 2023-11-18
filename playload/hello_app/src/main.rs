@@ -1,3 +1,4 @@
+#![allow(dead_code, unused)]
 #![feature(asm_const)]
 #![no_std]
 #![no_main]
@@ -8,14 +9,7 @@ const SYS_TERMINATE: usize = 3;
 
 #[no_mangle]
 unsafe extern "C" fn _start() {
-    hello();
-    hello();
-    put_char('H');
-    put_char('i');
-    let a = "25";
-    put_char('!');
-
-    // puts("hello");
+    puts("Hello, World !");
     terminate();
 }
 

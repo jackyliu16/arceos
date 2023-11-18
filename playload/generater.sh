@@ -10,9 +10,10 @@ else
 fi
 
 # Input: The Name of Directory
-function generateBinrary() {
+# Output: Hex Size of Binary 
+function generateBinary() {
+  # echo "====================" $1 "===================="
   # Create Binrary
-  echo $1
   cd "$BASE_DIR/$1"
   # echo `pwd`
   cargo build --target riscv64gc-unknown-none-elf --release
@@ -20,17 +21,21 @@ function generateBinrary() {
   rust-objcopy --binary-architecture=riscv64 --strip-all -O binary ../../target/riscv64gc-unknown-none-elf/release/$1 ./$1.bin
 
   # return size
-  return $(stat -c%s "./$1.bin")
+  # echo $(stat -c%s "./$1.bin") "0x$(stat -c%s "./$1.bin" | xargs printf "%02x")"
+  echo "0x$(stat -c%s "./$1.bin" | xargs printf "%02x")"
+  # return "$(stat -c%s "./$1.bin" | xargs printf "%02x")"
 }
 
 
-generateBinrary "hello_nop"
-hello_nop_size=$?
-echo "hello_nop_size: " $hello_nop_size
+echo "==================== HEAD OF GEN ==================="
 
-generateBinrary "hello_app"
-hello_app_size=$?
-echo "hello_app_size: " $hello_app_size
+hello_nop_size=$(generateBinary "hello_nop")
+printf "hello_nop_size: 0x%x %d\n" $hello_nop_size $hello_nop_size 
+
+hello_app_size=$(generateBinary "hello_app")
+printf "hello_app_size: 0x%x %d\n" $hello_app_size $hello_app_size 
+
+echo "==================== TAIL OF GEN ==================="
 
 # ][  u16  ]  [  u16  ]
 # ][        4B        ] [ package 1 ]
