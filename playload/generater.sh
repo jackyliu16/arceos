@@ -29,11 +29,11 @@ function generateBinary() {
 
 echo "==================== HEAD OF GEN ==================="
 
-hello_nop_size=$(generateBinary "hello_nop")
-printf "hello_nop_size: 0x%x %d\n" $hello_nop_size $hello_nop_size 
+nop_size=$(generateBinary "hello_nop")
+printf "hello_nop_size: 0x%x %d\n" $nop_size $nop_size 
 
-hello_app_size=$(generateBinary "hello_app")
-printf "hello_app_size: 0x%x %d\n" $hello_app_size $hello_app_size 
+app_size=$(generateBinary "hello_app")
+printf "hello_app_size: 0x%x %d\n" $app_size $app_size 
 
 echo "==================== TAIL OF GEN ==================="
 
@@ -43,10 +43,7 @@ echo "==================== TAIL OF GEN ==================="
 # PFLASH 32M ] [                                            ] [  ] [  ] [  ] 
 
 cd $BASE_DIR
-hex1=$(printf "%02x" $hello_nop_size)
-hex2=$(printf "%02x" $hello_app_size)
-hex="$hex1$hex2"
-echo -n $hex | xxd -r -p > size.bin
+echo -n $nop_size$app_size | xxd -r -p > size.bin
 echo "size.bin: " $(stat -c%s "./size.bin")
 
 dd if=/dev/zero                  of=./apps.bin               bs=1M count=32
