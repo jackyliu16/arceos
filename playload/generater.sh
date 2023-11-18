@@ -37,9 +37,10 @@ printf "hello_app_size: 0x%x %d\n" $hello_app_size $hello_app_size
 
 echo "==================== TAIL OF GEN ==================="
 
-# ][  u16  ]  [  u16  ]
-# ][        4B        ] [ package 1 ]
-# ][        4B + size_of(package 1) ] [ NEXT ] 
+# PFLASH 32M ]
+# PFLASH 32M ] [ NUM_OF_IMAGE ]
+# PFLASH 32M ] [    u16:2B    ] [ BYTE_LIST:2B*NUM_OF_IMAGE ] 
+# PFLASH 32M ] [                                            ] [  ] [  ] [  ] 
 
 cd $BASE_DIR
 hex1=$(printf "%02x" $hello_nop_size)
