@@ -30,7 +30,7 @@ function generateBinrary() {
   return $(stat -c%s "./$1.bin")
 }
 
-generateBinrary "hello_app"
+generateBinrary "hello_nop"
 hello_app_size=$?
 echo "hello_app_size: " $hello_app_size
 
