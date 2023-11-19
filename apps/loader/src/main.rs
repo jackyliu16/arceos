@@ -1,3 +1,4 @@
+#![allow(dead_code, unused)]
 #![feature(asm_const)]
 #![cfg_attr(feature = "axstd", no_std)]
 #![cfg_attr(feature = "axstd", no_main)]
@@ -8,10 +9,14 @@ use core::mem::size_of;
 use axstd::println;
 const PLASH_START: usize = 0x22000000;
 const LOAD_START: usize = 0xffff_ffc0_8010_0000;
+
+use log::{debug, error, info, trace, warn};
+
 #[cfg_attr(feature = "axstd", no_mangle)]
 fn main() {
     println!("RUN LOADER");
     let apps_start = PLASH_START as *const u8;
+    let load_start = LOAD_START as *const u8;
 
     // Gain NUM
     let byte_num = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u8>()) };
@@ -43,59 +48,26 @@ fn main() {
     }
 
     println!("{apps:?}");
-    // let read_only_app1 = unsafe {
-    //     core::slice::from_raw_parts(
-    //         apps_start.offset(size_of::<u16>() as isize),
-    //         app_size_1 as usize,
-    //     )
-    // };
-    // let read_only_app2 = unsafe {
-    //     core::slice::from_raw_parts(
-    //         apps_start.offset((size_of::<u16>() + app_size_1 as usize) as isize),
-    //         app_size_2 as usize,
-    //     )
-    // };
 
-    // // println!("content: {:?}: ", code);
-    // println!("Load payload ok!");
+    // LOAD APPLICATION
+    for i in 0..app_num {
+        let i = i as usize;
+        let read_only_app =
+            unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
+        let load_app =
+            unsafe { core::slice::from_raw_parts_mut(load_start as *mut u8, apps[i].size) };
+        println!("Copy App {i} data from {}", apps[i].start_addr as usize);
 
-    // println!("Copy app ...");
-    // let load_start = LOAD_START as *const u8;
+        load_app.copy_from_slice(read_only_app);
 
-    // // load app 1
-    // let load_app_1 =
-    //     unsafe { core::slice::from_raw_parts_mut(load_start as *mut u8, app_size_1 as usize) };
-    // let load_app_2 = unsafe {
-    //     core::slice::from_raw_parts_mut(
-    //         load_start.offset(app_size_1 as isize) as *mut u8,
-    //         app_size_2 as usize,
-    //     )
-    // };
+        trace!("Original App: ");
+        trace!("{i}: {read_only_app:?}");
 
-    // // Copy App Data From ReadOnly Areas
-    // load_app_1.copy_from_slice(read_only_app1);
-    // load_app_2.copy_from_slice(read_only_app2);
+        trace!("Load App:");
+        trace!("{i}: {load_app:?}");
 
-    // println!("Original App: ");
-    // println!("1: {read_only_app1:?}");
-    // println!("2: {read_only_app2:?}");
-
-    // println!("Load App:");
-    // println!("1: {load_app_1:?}");
-    // println!("2: {load_app_2:?}");
-
-    // println!("ORIGINAL AREAS: ");
-    // println!("{:?}", unsafe {
-    //     core::slice::from_raw_parts(
-    //         apps_start,
-    //         (app_size_1 + app_size_2 + size_of::<u16>() as u8) as usize,
-    //     )
-    // });
-
-    // println!("LOADING AREAS: ");
-    // println!("{:?}", unsafe {
-    //     core::slice::from_raw_parts(load_start, (app_size_1 + app_size_2) as usize)
-    // });
+        println!("Executing App {i}");
+    }
 
     // register_abi(SYS_HELLO, abi_hello as usize);
     // register_abi(SYS_PUTCHAR, abi_putchar as usize);
@@ -157,8 +129,8 @@ fn abi_terminate() -> ! {
 const MAX_APP_NUM: usize = u8::MAX as usize;
 #[derive(Clone, Copy)]
 struct APP {
-    start_addr: *const u8,
-    size: usize,
+    pub start_addr: *const u8,
+    pub size: usize,
 }
 
 impl APP {
