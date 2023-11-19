@@ -4,8 +4,8 @@
 use core::panic::PanicInfo;
 
 #[no_mangle]
-unsafe extern "C" fn _start() -> ! {
-    core::arch::asm!("nop", options(noreturn))
+unsafe extern "C" fn _start() {
+    core::arch::asm!("nop")
 }
 
 #[panic_handler]
