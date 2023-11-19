@@ -12,33 +12,37 @@ const LOAD_START: usize = 0xffff_ffc0_8010_0000;
 fn main() {
     println!("RUN LOADER");
     let apps_start = PLASH_START as *const u8;
+
+    // Gain NUM
+    let byte_num = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u8>()) };
+    let app_num = u8::from_be_bytes([byte_num[0]]);
+    println!("DETACT {app_num} app");
+
     let byte = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u64>()) };
-    for b in byte {
-        println!("{:08b}", b);
+    // for b in byte { println!("{:08b}", b); }
+    // Gain Each App Size
+    let mut apps: [APP; MAX_APP_NUM] = [APP::empty(); MAX_APP_NUM];
+    let byte_apps_sizes = unsafe {
+        // NOTE: BC Rust Internal structure autocomplete will fill vacancy, thus u16 rather than u8
+        core::slice::from_raw_parts(
+            apps_start.offset(size_of::<u16>() as isize),
+            app_num as usize * size_of::<u16>(),
+        )
+    };
+    println!("app sizes: {byte_apps_sizes:?}");
+
+    let head_offset = size_of::<u8>() + app_num as usize * size_of::<u16>();
+    for i in 0..app_num {
+        let i = i as usize;
+        apps[i] = unsafe {
+            APP::new(
+                apps_start.offset(head_offset as isize),
+                u16::from_be_bytes([byte_apps_sizes[i * 2], byte_apps_sizes[i * 2 + 1]]) as usize,
+            )
+        }
     }
-    let app_size_1 = u16::from_be_bytes([byte[0], byte[1]]);
-    let app_size_2 = u16::from_be_bytes([byte[2], byte[3]]);
-    println!("size 1: {app_size_1}, size 2: {app_size_2}");
-    let app_size_1 = u16::from_be_bytes([byte[4], byte[5]]);
-    let app_size_2 = u16::from_be_bytes([byte[6], byte[7]]);
-    println!("size 1: {app_size_1}, size 2: {app_size_2}");
-    let app_size_1 = u32::from_be_bytes([byte[0], byte[1], byte[2], byte[3]]);
-    let app_size_2 = u32::from_be_bytes([byte[4], byte[5], byte[6], byte[7]]);
-    println!("size 1: {app_size_1}, size 2: {app_size_2}");
 
-    println!("Load payload ...");
-    let app_size_1 = u16::from_le_bytes([byte[0], byte[1]]);
-    let app_size_2 = u16::from_le_bytes([byte[2], byte[3]]);
-    println!("size 1: {app_size_1}, size 2: {app_size_2}");
-    let app_size_1 = u16::from_le_bytes([byte[4], byte[5]]);
-    let app_size_2 = u16::from_le_bytes([byte[6], byte[7]]);
-    println!("size 1: {app_size_1}, size 2: {app_size_2}");
-    let app_size_1 = u32::from_le_bytes([byte[0], byte[1], byte[2], byte[3]]);
-    let app_size_2 = u32::from_le_bytes([byte[4], byte[5], byte[6], byte[7]]);
-    println!("size 1: {app_size_1}, size 2: {app_size_2}");
-
-    println!("sizeByte: {byte:?}");
-
+    println!("{apps:?}");
     // let read_only_app1 = unsafe {
     //     core::slice::from_raw_parts(
     //         apps_start.offset(size_of::<u16>() as isize),
@@ -120,7 +124,7 @@ fn main() {
     //         run_start = in(reg) jump_location
     //     )
     // }
-    println!("App 2 Finish");
+    // println!("App 2 Finish");
 }
 
 const SYS_HELLO: usize = 1;
@@ -148,4 +152,38 @@ fn abi_putchar(c: char) {
 fn abi_terminate() -> ! {
     println!("[ABI:TERMINATE]: Shutting Down !!!");
     arceos_api::sys::ax_terminate();
+}
+
+const MAX_APP_NUM: usize = u8::MAX as usize;
+#[derive(Clone, Copy)]
+struct APP {
+    start_addr: *const u8,
+    size: usize,
+}
+
+impl APP {
+    pub fn new(start_addr: *const u8, size: usize) -> Self {
+        Self { start_addr, size }
+    }
+    pub fn empty() -> Self {
+        Self {
+            start_addr: 0x0 as *const u8,
+            size: 0,
+        }
+    }
+}
+
+impl core::fmt::Debug for APP {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        // 如果 size 为 0，则不显示任何信息
+        if self.size == 0 {
+            return Ok(());
+        }
+
+        // 自定义打印的行为
+        f.debug_struct("APP")
+            .field("start_addr", &self.start_addr)
+            .field("size", &self.size)
+            .finish()
+    }
 }
