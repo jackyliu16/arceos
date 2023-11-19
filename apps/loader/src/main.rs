@@ -37,7 +37,7 @@ fn main() {
     };
     println!("app sizes: {byte_apps_sizes:?}");
 
-    let mut head_offset = size_of::<u16>() + app_num as usize * size_of::<u16>();
+    let mut head_offset = size_of::<u16>() + app_num as usize * size_of::<u32>();
     for i in 0..app_num {
         let i = i as usize;
         apps[i] = unsafe {
@@ -51,6 +51,10 @@ fn main() {
 
     println!("{apps:?}");
 
+    println!("{:?}", unsafe {
+        core::slice::from_raw_parts(apps_start, 32)
+    });
+
     // LOAD APPLICATION
     for i in 0..app_num {
         println!("====================");
@@ -61,7 +65,7 @@ fn main() {
             unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
         let load_app =
             unsafe { core::slice::from_raw_parts_mut(load_start as *mut u8, apps[i].size) };
-        println!("Copy App {i} data from {}", apps[i].start_addr as usize);
+        println!("Copy App {i} data from {:x}", apps[i].start_addr as usize);
 
         load_app.copy_from_slice(read_only_app);
 
