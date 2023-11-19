@@ -25,6 +25,7 @@ fn main() {
 
     let byte = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u64>()) };
     // for b in byte { println!("{:08b}", b); }
+
     // Gain Each App Size
     let mut apps: [APP; MAX_APP_NUM] = [APP::empty(); MAX_APP_NUM];
     let byte_apps_sizes = unsafe {
@@ -36,7 +37,7 @@ fn main() {
     };
     println!("app sizes: {byte_apps_sizes:?}");
 
-    let head_offset = size_of::<u8>() + app_num as usize * size_of::<u16>();
+    let mut head_offset = size_of::<u16>() + app_num as usize * size_of::<u16>();
     for i in 0..app_num {
         let i = i as usize;
         apps[i] = unsafe {
@@ -44,13 +45,17 @@ fn main() {
                 apps_start.offset(head_offset as isize),
                 u16::from_be_bytes([byte_apps_sizes[i * 2], byte_apps_sizes[i * 2 + 1]]) as usize,
             )
-        }
+        };
+        head_offset += apps[i].size;
     }
 
     println!("{apps:?}");
 
     // LOAD APPLICATION
     for i in 0..app_num {
+        println!("====================");
+        println!("= START OF APP {i} =");
+        println!("====================");
         let i = i as usize;
         let read_only_app =
             unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
@@ -66,37 +71,32 @@ fn main() {
         trace!("Load App:");
         trace!("{i}: {load_app:?}");
 
+        register_abi(SYS_HELLO, abi_hello as usize);
+        register_abi(SYS_PUTCHAR, abi_putchar as usize);
+        register_abi(SYS_TERMINATE, abi_terminate as usize);
+
         println!("Executing App {i}");
+        let arg0 = b'c';
+        unsafe {
+            core::arch::asm!("
+            li      t0, {abi_num}
+            slli    t0, t0, 3
+            la      t1, {abi_table}
+            add     t1, t1, t0
+            ld      t1, (t1)
+            jalr    t1
+            li      t2, {run_start}
+            jalr    t2",
+                run_start = const LOAD_START,
+                abi_table = sym ABI_TABLE,
+                //abi_num = const SYS_HELLO,
+                abi_num = const SYS_PUTCHAR,
+                in("a0") arg0,
+            )
+        }
+
+        println!("APP {i} FINISH !!!")
     }
-
-    // register_abi(SYS_HELLO, abi_hello as usize);
-    // register_abi(SYS_PUTCHAR, abi_putchar as usize);
-    // register_abi(SYS_TERMINATE, abi_terminate as usize);
-    // println!("Execute app ...");
-    // unsafe {
-    //     core::arch::asm!("
-    //         li      t2, {run_start}
-    //         jalr    t2",
-    //         run_start = const LOAD_START,
-    //     )
-    // }
-    // println!("App 1 Finish");
-
-    // let jump_location: usize = load_start as usize + app_size_1 as usize;
-    // println!("jump into {jump_location:x}");
-
-    // // execute app
-    // unsafe {
-    //     core::arch::asm!("
-    //     la      a7, {abi_table}
-    //     mv      t2, {run_start}
-    //     jalr    t2
-    //     j       .",
-    //         abi_table = sym ABI_TABLE,
-    //         run_start = in(reg) jump_location
-    //     )
-    // }
-    // println!("App 2 Finish");
 }
 
 const SYS_HELLO: usize = 1;
@@ -147,12 +147,10 @@ impl APP {
 
 impl core::fmt::Debug for APP {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        // 如果 size 为 0，则不显示任何信息
         if self.size == 0 {
             return Ok(());
         }
 
-        // 自定义打印的行为
         f.debug_struct("APP")
             .field("start_addr", &self.start_addr)
             .field("size", &self.size)
