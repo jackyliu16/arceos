@@ -65,7 +65,10 @@ fn main() {
             unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
         let load_app =
             unsafe { core::slice::from_raw_parts_mut(load_start as *mut u8, apps[i].size) };
-        println!("Copy App {i} data from {:x}", apps[i].start_addr as usize);
+        println!(
+            "Copy App {i} data from {:x} into {:x}",
+            apps[i].start_addr as usize, LOAD_START
+        );
 
         load_app.copy_from_slice(read_only_app);
 
@@ -83,19 +86,12 @@ fn main() {
         let arg0 = b'c';
         unsafe {
             core::arch::asm!("
-            li      t0, {abi_num}
-            slli    t0, t0, 3
-            la      t1, {abi_table}
-            add     t1, t1, t0
-            ld      t1, (t1)
-            jalr    t1
+            la      a7, {abi_table}
             li      t2, {run_start}
             jalr    t2",
+                clobber_abi("C"),
                 run_start = const LOAD_START,
                 abi_table = sym ABI_TABLE,
-                //abi_num = const SYS_HELLO,
-                abi_num = const SYS_PUTCHAR,
-                in("a0") arg0,
             )
         }
 
@@ -117,12 +113,12 @@ fn register_abi(num: usize, handle: usize) {
 
 fn abi_hello() {
     println!("[ABI:Hello] Hello, Apps!");
-    unsafe { core::arch::asm!("la   a7,{}", sym ABI_TABLE) }
+    unsafe { core::arch::asm!("la   a7, {}", sym ABI_TABLE) }
 }
 
 fn abi_putchar(c: char) {
     println!("[ABI:Print] {c}");
-    unsafe { core::arch::asm!("la   a7,{}", sym ABI_TABLE) }
+    unsafe { core::arch::asm!("la   a7, {}", sym ABI_TABLE) }
 }
 
 fn abi_terminate() -> ! {
@@ -143,7 +139,7 @@ impl APP {
     }
     pub fn empty() -> Self {
         Self {
-            start_addr: 0x0 as *const u8,
+            start_addr: 0xdead as *const u8,
             size: 0,
         }
     }
