@@ -73,7 +73,7 @@ members = [
     "apps/loader",
     "playload/hello_app",  
     "playload/hello_ebreak",
-    "playload/hello_nop",
+    "playload/hello_nop", "playload/hello_d",
 ]
 
 [profile.release]

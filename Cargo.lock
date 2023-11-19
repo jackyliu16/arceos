@@ -1072,6 +1072,10 @@ name = "hello_app"
 version = "0.1.0"
 
 [[package]]
+name = "hello_d"
+version = "0.1.0"
+
+[[package]]
 name = "hello_ebreak"
 version = "0.1.0"
 
@@ -1223,8 +1227,10 @@ name = "loader"
 version = "0.1.0"
 dependencies = [
  "arceos_api",
+ "axconfig",
  "axstd",
  "log",
+ "riscv",
 ]
 
 [[package]]

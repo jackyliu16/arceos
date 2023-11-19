@@ -26,7 +26,7 @@ function generateBinary() {
   # return "$(stat -c%s "./$1.bin" | xargs printf "%02x")"
 }
 
-app_names=("hello_app")
+app_names=("hello_app" "hello_d")
 declare -A app_sizes
 declare -a link
 NUM_OF_IMAGE=0
