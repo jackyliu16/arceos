@@ -22,18 +22,26 @@ function generateBinary() {
 
   # return size
   # echo $(stat -c%s "./$1.bin") "0x$(stat -c%s "./$1.bin" | xargs printf "%02x")"
-  echo "0x$(stat -c%s "./$1.bin" | xargs printf "%02x")"
+  echo "$(stat -c%s "./$1.bin" | xargs printf "%04x")"
   # return "$(stat -c%s "./$1.bin" | xargs printf "%02x")"
 }
 
+app_names=("hello_nop" "hello_app")
+declare -A app_sizes
+declare -a link
+app_num=0
 
 echo "==================== HEAD OF GEN ==================="
 
-nop_size=$(generateBinary "hello_nop")
-printf "hello_nop_size: 0x%x %d\n" $nop_size $nop_size 
+for name in "${app_names[@]}"; do
+  echo name: $name
+  app_size=$(generateBinary $name)
+  app_sizes["$name"]=$app_size
+  link+=${app_size}
+done
 
-app_size=$(generateBinary "hello_app")
-printf "hello_app_size: 0x%x %d\n" $app_size $app_size 
+echo "app_sizes: ${app_sizes[@]}"
+echo "link: ${link}"
 
 echo "==================== TAIL OF GEN ==================="
 
@@ -43,13 +51,13 @@ echo "==================== TAIL OF GEN ==================="
 # PFLASH 32M ] [                                            ] [  ] [  ] [  ] 
 
 cd $BASE_DIR
-echo -n $nop_size$app_size | xxd -r -p > size.bin
-echo "size.bin: " $(stat -c%s "./size.bin")
+echo -n "${app_sizes[@]}" | xxd -r -p > size.bin
+echo "size.bin size: $(stat -c%s "./size.bin")"
 
 dd if=/dev/zero                  of=./apps.bin               bs=1M count=32
 dd if=./size.bin                 of=./apps.bin conv=notrunc
-dd if=./hello_nop/hello_nop.bin  of=./apps.bin conv=notrunc  bs=1B seek=2
-dd if=./hello_app/hello_app.bin  of=./apps.bin conv=notrunc  bs=1B seek=$(($hello_nop_size + 2))
+# dd if=./hello_nop/hello_nop.bin  of=./apps.bin conv=notrunc  bs=1B seek=2
+# dd if=./hello_app/hello_app.bin  of=./apps.bin conv=notrunc  bs=1B seek=$(($hello_nop_size + 2))
 # seek=$(($hello_nop_size + 2))
 
 
