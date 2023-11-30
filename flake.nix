@@ -91,7 +91,8 @@
               export LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib" # nixpkgs@52447
               export LD_LIBRARY_PATH="${pkgs.zlib}/lib:$LD_LIBRARY_PATH" # nixpkgs@92946
               
-              export PATH=$PATH:${pkgs.aarch64-linux-musl-cross}/bin:${pkgs.riscv64-linux-musl-cross}/bin:${pkgs.x86_64-linux-musl-cross}/bin
+              # export PATH=$PATH:${pkgs.aarch64-linux-musl-cross}/bin:${pkgs.riscv64-linux-musl-cross}/bin:${pkgs.x86_64-linux-musl-cross}/bin
+              export PATH=$PATH:/usr/musl-riscv64/bin
             '';
           };
         };

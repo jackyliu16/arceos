@@ -10,6 +10,7 @@ axstd = { path = "../../ulib/axstd", optional = true }
 log = "0.4.0"
 arceos_api = { path = "../../api/arceos_api" }
 axconfig = { path = "../../modules/axconfig" }
+elf = { version = "0.7.4", default-features = false }
 
 [target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
 riscv = "0.10"

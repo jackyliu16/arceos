@@ -7,16 +7,30 @@ use core::mem::size_of;
 
 #[cfg(feature = "axstd")]
 use axstd::println;
-const PLASH_START: usize = 0x22000000;
+const PLASH_START: usize = 0x2200_0000;
+const LOAD_START: usize  = 0x4010_0000;
 
 use log::{debug, error, info, trace, warn};
+
+use elf::abi::PT_LOAD;
+use elf::endian::AnyEndian;
+use elf::ElfBytes;
+use elf::segment::ProgramHeader;
 
 #[cfg_attr(feature = "axstd", no_mangle)]
 fn main() {
     println!("RUN LOADER");
     let apps_start = PLASH_START as *const u8;
+    println!("{:?}", unsafe { core::slice::from_raw_parts(apps_start, 32) });
 
-    // Gain NUM
+    // BC there is different between only load text segment and load elf files
+
+    // First: modify the original image
+    //  - do not use rustcopy to shrink the elf image into text only binrary
+    //  - load elf image in PLASH point just like we did to binrary image file.
+    //  - use theseus ways to load it into mem.
+
+    // // Gain NUM
     let byte_num = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u8>()) };
     let app_num = u8::from_be_bytes([byte_num[0]]);
     println!("DETACT {app_num} app");
@@ -49,90 +63,34 @@ fn main() {
 
     println!("{apps:?}");
 
-    println!("{:?}", unsafe {
-        core::slice::from_raw_parts(apps_start, 32)
-    });
+    // println!("{:?}", unsafe {
+    //     core::slice::from_raw_parts(apps_start, 32)
+    // });
 
     unsafe {
         init_app_page_table();
         switch_app_aspace();
     }
 
-    const LOAD_START: usize = 0x4010_0000;
 
-    // LOAD APPLICATION
+    // // LOAD APPLICATION
     for i in 0..app_num {
         println!("====================");
-        println!("= START OF APP {i} =");
+        println!("= START OF APP {i} size: {} =", apps[i as usize].size);
         println!("====================");
         let i = i as usize;
-        let read_only_app =
+        let read_only_elf =
             unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
-        let load_app =
-            unsafe { core::slice::from_raw_parts_mut(LOAD_START as *mut u8, apps[i].size) };
-        println!(
-            "Copy App {i} data from {:x} into {:x}",
-            apps[i].start_addr as usize, LOAD_START
-        );
+        // println!("{:?}", read_only_elf);
+        // println!("====================================================");
 
-        load_app.copy_from_slice(read_only_app);
-
-        trace!("Original App: ");
-        trace!("{i}: {read_only_app:?}");
-
-        trace!("Load App:");
-        trace!("{i}: {load_app:?}");
-
-        register_abi(SYS_HELLO, abi_hello as usize);
-        register_abi(SYS_PUTCHAR, abi_putchar as usize);
-        register_abi(SYS_TERMINATE, abi_terminate as usize);
-
-        println!("Executing App {i}");
-        let arg0 = b'c';
-        unsafe {
-            core::arch::asm!("
-            la      a7, {abi_table}
-            li      t2, {run_start}
-            jalr    t2",
-                clobber_abi("C"),
-                run_start = const LOAD_START,
-                abi_table = sym ABI_TABLE,
-            )
-        }
-
-        println!("APP {i} FINISH !!!")
+        parse_and_load_elf_executable(apps[i].start_addr, read_only_elf);
     }
 }
 
-const SYS_HELLO: usize = 1;
-const SYS_PUTCHAR: usize = 2;
-const SYS_TERMINATE: usize = 3;
-
-static mut ABI_TABLE: [usize; 16] = [0; 16];
-
-fn register_abi(num: usize, handle: usize) {
-    unsafe {
-        ABI_TABLE[num] = handle;
-    }
-}
-
-fn abi_hello() {
-    println!("[ABI:Hello] Hello, Apps!");
-    unsafe { core::arch::asm!("la   a7, {}", sym ABI_TABLE) }
-}
-
-fn abi_putchar(c: char) {
-    println!("[ABI:Print] {c}");
-    unsafe { core::arch::asm!("la   a7, {}", sym ABI_TABLE) }
-}
-
-fn abi_terminate() -> ! {
-    println!("[ABI:TERMINATE]: Shutting Down !!!");
-    arceos_api::sys::ax_terminate();
-}
 
 const MAX_APP_NUM: usize = u8::MAX as usize;
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct APP {
     pub start_addr: *const u8,
     pub size: usize,
@@ -147,19 +105,6 @@ impl APP {
             start_addr: 0xdead as *const u8,
             size: 0,
         }
-    }
-}
-
-impl core::fmt::Debug for APP {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        if self.size == 0 {
-            return Ok(());
-        }
-
-        f.debug_struct("APP")
-            .field("start_addr", &self.start_addr)
-            .field("size", &self.size)
-            .finish()
     }
 }
 
@@ -190,3 +135,82 @@ unsafe fn switch_app_aspace() {
     satp::set(satp::Mode::Sv39, 0, page_table_root >> 12);
     riscv::asm::sfence_vma_all();
 }
+
+
+
+fn parse_and_load_elf_executable(
+    start_addr: *const u8,
+    file_contents: &[u8],
+) {
+    println!("inside function parse and load elf executable");
+    let elf_file = ElfBytes::<AnyEndian>::minimal_parse(file_contents).expect("Open test1");
+    
+    for header in elf_file.segments().unwrap().iter() {
+        if (header.p_type == PT_LOAD) {
+            println!("LOAD Segment");
+            println!("{:?}", header);
+
+            let read_start = start_addr as usize + header.p_offset as usize;
+            let load_start = LOAD_START as usize + header.p_vaddr as usize;
+            let read_only_app =
+                unsafe { core::slice::from_raw_parts(read_start as *const u8, header.p_memsz as usize) };
+                
+            let load_app =
+                unsafe { core::slice::from_raw_parts_mut(load_start as *mut u8, header.p_memsz as usize) };
+
+            println!("load {read_start:x} {:08x} into {load_start:x}", header.p_memsz as usize);
+            load_app.copy_from_slice(read_only_app);
+
+            // println!("{:?}", unsafe { core::slice::from_raw_parts(read_start as *const u8, 32) });
+            // println!("{:?}", unsafe { core::slice::from_raw_parts(load_start as *const u8, 32) });
+            assert_eq!(
+                unsafe { core::slice::from_raw_parts(read_start as *const u8, 32) }, 
+                unsafe { core::slice::from_raw_parts(load_start as *const u8, 32) }
+            );
+        }
+    }
+    show_symbol_table(elf_file);
+}
+
+fn show_section_table(elf_file: ElfBytes<AnyEndian>) {
+    println!("--------------------------------------------------");
+    println!("# DISPLAY SECTION TABLE #");
+    // Get the section header table alongside its string table
+    let (shdrs_opt, strtab_opt) = elf_file 
+        .section_headers_with_strtab()
+        .expect("shdrs offsets should be valid");
+    let (shdrs, strtab) = (
+        shdrs_opt.expect("Should have shdrs"),
+        strtab_opt.expect("Should have strtab")
+    );
+    println!("{:?}", shdrs);
+    println!("{:?}", strtab);
+
+    println!("==================================================");
+    println!("# ITER #");
+    for shdr in shdrs.iter() {
+        println!("{:?}", strtab.get(shdr.sh_name as usize).expect("Failure to get section name"));
+        println!("{:?}", shdr);
+    }
+}
+
+fn show_symbol_table(elf_file: ElfBytes<AnyEndian>) {
+    println!("--------------------------------------------------");
+    println!("# DISPLAY SYMBOL TABLE #");
+    // Get the section header table alongside its string table
+    let (symtabs, strtabs) = elf_file 
+        .symbol_table()
+        .expect("shdrs offsets should be valid")
+        .expect("shdrs offsets should be valid");
+
+    println!("{:?}", symtabs);
+    println!("{:?}", strtabs);
+
+    println!("==================================================");
+    println!("# ITER #");
+    for sym in symtabs.iter() {
+        println!("{:?}", strtabs.get(sym.st_name as usize).expect("Failure to get section name"));
+        println!("{:?}", sym);
+    }
+}
+
