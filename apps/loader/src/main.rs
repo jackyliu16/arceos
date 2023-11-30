@@ -90,7 +90,7 @@ fn main() {
 
 
 const MAX_APP_NUM: usize = u8::MAX as usize;
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 struct APP {
     pub start_addr: *const u8,
     pub size: usize,
@@ -105,6 +105,19 @@ impl APP {
             start_addr: 0xdead as *const u8,
             size: 0,
         }
+    }
+}
+
+impl core::fmt::Debug for APP {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        if self.size == 0 {
+            return Ok(());
+        }
+
+        f.debug_struct("APP")
+            .field("start_addr", &self.start_addr)
+            .field("size", &self.size)
+            .finish()
     }
 }
 
