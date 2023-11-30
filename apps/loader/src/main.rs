@@ -6,7 +6,7 @@
 use core::mem::size_of;
 
 #[cfg(feature = "axstd")]
-use axstd::println;
+use axstd::{print, println};
 const PLASH_START: usize = 0x2200_0000;
 const LOAD_START: usize  = 0x4010_0000;
 
@@ -36,7 +36,12 @@ fn main() {
     println!("DETACT {app_num} app");
 
     let byte = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u64>()) };
-    // for b in byte { println!("{:08b}", b); }
+    for b in byte { println!("{:08b}", b); }
+    println!("===");
+    println!("{:x}", unsafe { u16::from_be_bytes([byte[0], byte[1]])});
+    println!("{:x}", unsafe { u16::from_be_bytes([byte[2], byte[3]])});
+    println!("{:x}", unsafe { u16::from_be_bytes([byte[4], byte[5]])});
+    println!("{:x}", unsafe { u16::from_be_bytes([byte[6], byte[7]])});
 
     // Gain Each App Size
     let mut apps: [APP; MAX_APP_NUM] = [APP::empty(); MAX_APP_NUM];
@@ -47,6 +52,12 @@ fn main() {
             app_num as usize * size_of::<u16>(),
         )
     };
+    println!("=====");
+    println!("{:x}", unsafe { u16::from_be_bytes([byte_apps_sizes[0], byte_apps_sizes[1]])});
+    println!("{:?}", unsafe { u16::from_be_bytes([byte_apps_sizes[0], byte_apps_sizes[1]]) as usize});
+    println!("=====");
+    println!("{:?}", unsafe {apps_start.offset(size_of::<u16>() as isize)});
+    println!("{:?}", app_num as usize * size_of::<u16>());
     println!("app sizes: {byte_apps_sizes:?}");
 
     let mut head_offset = size_of::<u16>() + app_num as usize * size_of::<u32>();
@@ -81,7 +92,17 @@ fn main() {
         let i = i as usize;
         let read_only_elf =
             unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
-        // println!("{:?}", read_only_elf);
+        // println!("{:04x}", read_only_elf);
+        let mut a = 0;
+        for b in read_only_elf { 
+            print!("{:04x} ", b); 
+            a = a + 1;
+            if a > 100 {
+                break;
+            }
+        }
+        println!("");
+        println!("{} {:x}", read_only_elf.len(), read_only_elf.len());
         // println!("====================================================");
 
         parse_and_load_elf_executable(apps[i].start_addr, read_only_elf);

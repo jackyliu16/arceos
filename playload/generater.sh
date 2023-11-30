@@ -84,10 +84,10 @@ fi
 
 
 function generateBinary() {
-  echo "$(stat -c%s "./$1" | xargs printf "%04x")"
+  echo "$(stat -c%s "$BASE_DIR/$1" | xargs printf "%04x")"
 }
 
-app_names=("a.out" "libc.so")
+app_names=("libc.so")
 declare -A app_sizes
 NUM_OF_IMAGE=0
 
