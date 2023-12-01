@@ -87,7 +87,9 @@ function generateBinary() {
   echo "$(stat -c%s "$BASE_DIR/$1" | xargs printf "%08x")"
 }
 
-app_names=("libc.so")
+# BASE ON THE NEED OF RELOCATIONAL OBJECT FILE AND SHARED OBJECT AT THE SAME TIME
+# FIXME: value too great for base case libc could only be place at tail
+app_names=("hello.o" "libc.so")
 declare -A app_sizes
 NUM_OF_IMAGE=0
 
@@ -107,12 +109,11 @@ echo "==================== TAIL OF GEN ==================="
 
 # # PFLASH 32M ]
 # # PFLASH 32M ] [ NUM_OF_IMAGE ]
-# # PFLASH 32M ] [    u16:2B    ] [ BYTE_LIST:8B*NUM_OF_IMAGE ] 
-# # PFLASH 32M ] [     2B + 8B * NUM_OF_IMAGE                 ] [  ] [  ] [  ] 
-# 
+# # PFLASH 32M ] [    u16:2B    ] [ BYTE_LIST:4B*NUM_OF_IMAGE ] 
+# # PFLASH 32M ] [     2B + 4B * NUM_OF_IMAGE                 ] [  ] [  ] [  ] 
+# 1B=u8, 2B=u16, 4B=u32, 8B=u64
 cd $BASE_DIR
 printf "%02x" $NUM_OF_IMAGE | xxd -r -p > num.bin # NOTE: not allow app > 255
-echo -n "${app_sizes[@]}"
 echo -n "${app_sizes[@]}" | xxd -r -p > size.bin
 echo "size.bin size: $(stat -c%s "./size.bin")"
 
@@ -120,13 +121,21 @@ dd if=/dev/zero   of=./apps.bin              bs=1M count=32
 dd if=./num.bin   of=./apps.bin conv=notrunc 
 dd if=./size.bin  of=./apps.bin conv=notrunc bs=1B seek=2
 
-start_offset=$((2 + 8 * $NUM_OF_IMAGE)) # NUM_OF_IMAGE:2B + IMAGE_SIZE:4B * NUM_OF_IMAGE
-echo "start_offset" $start_offset
+echo "=== LOADING ==="
+start_offset=$((2 + 4 * $NUM_OF_IMAGE)) # NUM_OF_IMAGE:2B + IMAGE_SIZE:4B * NUM_OF_IMAGE
+echo "start_offset:" $start_offset
 for ((i=0; i<${#app_names[@]}; i++)); do
+  echo "================================="
   app_name=${app_names[i]}
-  app_size=${app_sizes[i]}
+  app_size=${app_sizes[$app_name]}
+  app_size_dec=$((16#${app_size}))
   dd if="$BASE_DIR/$app_name" of=./apps.bin conv=notrunc bs=1B seek=$start_offset
-  start_offset=$((start_offset + app_size))
+  echo "name" $app_name
+  echo "offset:" $start_offset
+  echo "len" ${#app_sizes[@]}
+  echo "app_size:" $app_size
+  echo "app_size_dec" $app_size_dec
+  start_offset=$((start_offset + app_size_dec))
 done
 
 # Copy the library files generate by musl

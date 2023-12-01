@@ -29,31 +29,16 @@ fn main() {
     //  - load elf image in PLASH point just like we did to binrary image file.
     //  - use theseus ways to load it into mem.
 
-    // // Gain NUM
+    // Gain NUM
+    // [ 02 ] 00 [ 00 00 17 d0 ] [ 00 0d 6f 90 ]
     let byte_num = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u8>()) };
     let app_num = u8::from_be_bytes([byte_num[0]]);
     println!("DETACT {app_num} app");
 
-    let byte = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u64>() + size_of::<u64>()) };
-    println!("===");
-    println!("{:x}", unsafe { u16::from_be_bytes([byte[0], byte[1]])});
-    println!("{:x}", unsafe { u16::from_be_bytes([byte[2], byte[3]])});
-    println!("{:x}", unsafe { u16::from_be_bytes([byte[4], byte[5]])});
-    println!("{:x}", unsafe { u16::from_be_bytes([byte[6], byte[7]])});
-    println!("===");
-    println!("{:x}", unsafe { u32::from_be_bytes([byte[0], byte[1], byte[2], byte[3]])});
-    println!("{:x}", unsafe { u32::from_be_bytes([byte[4], byte[5], byte[6], byte[7]])});
-    println!("{:x}", unsafe { u32::from_be_bytes([byte[8], byte[9], byte[10], byte[11]])});
-    println!("{:x}", unsafe { u32::from_be_bytes([byte[12], byte[13], byte[14], byte[15]])});
-    println!("===");
-    println!("{:x}", unsafe { u32::from_be_bytes([byte[2], byte[3], byte[4], byte[5]])});
-    println!("{:x}", unsafe { u32::from_be_bytes([byte[6], byte[7], byte[8], byte[7]])});
-    println!("{:x}", unsafe { u32::from_be_bytes([byte[8], byte[9], byte[10], byte[11]])});
-    println!("{:x}", unsafe { u32::from_be_bytes([byte[12], byte[13], byte[14], byte[15]])});
     // Gain Each App Size
     let mut apps: [APP; MAX_APP_NUM] = [APP::empty(); MAX_APP_NUM];
     let byte_apps_sizes = unsafe {
-        // NOTE: BC Rust Internal structure autocomplete will fill vacancy, thus u16 rather than u8
+        // [ 02 ] 00 [ 00 00 17 d0 ] [ 00 0d 6f 90 ]
         core::slice::from_raw_parts(
             apps_start.offset((size_of::<u16>()) as isize),
             app_num as usize * size_of::<u32>(),
@@ -63,8 +48,7 @@ fn main() {
     println!("{:?}", app_num as usize * size_of::<u16>());
     println!("app sizes: {byte_apps_sizes:?}");
 
-    // TODO: what the fuck ?
-    let mut head_offset = size_of::<u16>() + app_num as usize * size_of::<u32>() + size_of::<u32>();
+    let mut head_offset = size_of::<u16>() + app_num as usize * size_of::<u32>();
     for i in 0..app_num {
         let i = i as usize;
         apps[i] = unsafe {
@@ -83,17 +67,29 @@ fn main() {
 
     println!("{apps:?}");
 
-    // println!("{:?}", unsafe {
-    //     core::slice::from_raw_parts(apps_start, 32)
-    // });
+    let test = unsafe { core::slice::from_raw_parts(apps_start, 2000 * size_of::<u8>())}; 
+    println!("{}", size_of::<u8>());
+    let mut cnt = 0;
+    for b in test { 
+        print!("{:02x}", b);
+        if cnt == 1370 {
+            print!("\t");
+            cnt += 1;
+        } else {
+            cnt += 1;
+        };
+    }
+    println!("");
 
+    
     unsafe {
         init_app_page_table();
         switch_app_aspace();
     }
 
-
-    // // LOAD APPLICATION
+    // because we need to comtains both redirectable object file and shared object file in mem at
+    // the same time, which means we should load they separately in different location.
+    // LOAD APPLICATION
     for i in 0..app_num {
         println!("====================");
         println!("= START OF APP {i} size: {} =", apps[i as usize].size);
@@ -101,20 +97,18 @@ fn main() {
         let i = i as usize;
         let read_only_elf =
             unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
-        // println!("{:04x}", read_only_elf);
+        // println!("{:02x}", read_only_elf);
         let mut a = 0;
         println!("");
         println!("{} {:x}", read_only_elf.len(), read_only_elf.len());
         for b in read_only_elf { 
-            print!("{:04x} ", b); 
+            print!("{:02x} ", b); 
             a = a + 1;
-            if a > 100 {
+            if a > 200 {
                 break;
             }
         }
-        // println!("====================================================");
-
-        parse_and_load_elf_executable(apps[i].start_addr, read_only_elf);
+        // parse_and_load_elf_executable(apps[i].start_addr, read_only_elf);
     }
 }
 
@@ -204,8 +198,6 @@ fn parse_and_load_elf_executable(
             println!("load {read_start:x} {:08x} into {load_start:x}", header.p_memsz as usize);
             load_app.copy_from_slice(read_only_app);
 
-            // println!("{:?}", unsafe { core::slice::from_raw_parts(read_start as *const u8, 32) });
-            // println!("{:?}", unsafe { core::slice::from_raw_parts(load_start as *const u8, 32) });
             assert_eq!(
                 unsafe { core::slice::from_raw_parts(read_start as *const u8, 32) }, 
                 unsafe { core::slice::from_raw_parts(load_start as *const u8, 32) }
@@ -213,7 +205,7 @@ fn parse_and_load_elf_executable(
         }
     }
 
-    find(elf_file);
+    // find(elf_file);
 }
 
 fn show_section_table(elf_file: ElfBytes<AnyEndian>) {
