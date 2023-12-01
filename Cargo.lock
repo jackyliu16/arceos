@@ -1235,6 +1235,7 @@ dependencies = [
  "arceos_api",
  "axconfig",
  "axstd",
+ "cfg-if",
  "elf",
  "log",
  "riscv",

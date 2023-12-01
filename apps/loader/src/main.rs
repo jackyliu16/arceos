@@ -3,18 +3,33 @@
 #![cfg_attr(feature = "axstd", no_std)] #![cfg_attr(feature = "axstd", no_main)]
 
 use core::mem::size_of;
+use core::ops::Index;
 
-#[cfg(feature = "axstd")]
-use axstd::{print, println};
+cfg_if::cfg_if!{
+    if #[cfg(feature = "axstd")] {
+        use axstd::{print, println};
+        use axstd::string::String;
+        use axstd::vec::Vec;
+        use axstd::collections::BTreeMap;
+    }
+}
+
 const PLASH_START: usize = 0x2200_0000;
 const LOAD_START: usize  = 0x4010_0000;
 
+use elf::parse::ParseAt;
 use log::{debug, error, info, trace, warn};
 
+// ELF Format Cheatsheet: https://gist.github.com/x0nu11byt3/bcb35c3de461e5fb66173071a2379779
 use elf::abi::PT_LOAD;
 use elf::endian::AnyEndian;
 use elf::ElfBytes;
 use elf::segment::ProgramHeader;
+use elf::symbol::Symbol;
+use elf::abi::{ET_EXEC, ET_REL, ET_DYN, ET_CORE, ET_LOOS, ET_HIOS}; // ELF FILE TYPE
+use elf::abi::{SHT_REL, SHT_RELA}; // SECTION TYPE
+use elf::relocation::Rel;
+use elf::file::Class::ELF64;
 
 #[cfg_attr(feature = "axstd", no_mangle)]
 fn main() {
@@ -87,31 +102,85 @@ fn main() {
         switch_app_aspace();
     }
 
+    /// all object file inside the mem
+    let mut elfs: Vec<ElfBytes<AnyEndian>> = Vec::new();
+    /// relocatable file collection
+    let mut E: Vec<ElfBytes<AnyEndian>> = Vec::new();
+    /// unresolved symbol
+    let mut U: Vec<(String, Symbol, ElfBytes<AnyEndian>)> = Vec::new();
+    /// Parsed symbols
+    let mut D: Vec<(Symbol, ElfBytes<AnyEndian>)> = Vec::new();
+
     // because we need to comtains both redirectable object file and shared object file in mem at
     // the same time, which means we should load they separately in different location.
     // LOAD APPLICATION
+    // NOTE: this loop will do only one times, which demand that the file should be give in order.
     for i in 0..app_num {
-        println!("====================");
-        println!("= START OF APP {i} size: {} =", apps[i as usize].size);
-        println!("====================");
-        let i = i as usize;
-        let read_only_elf =
-            unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
-        // println!("{:02x}", read_only_elf);
-        let mut a = 0;
-        println!("");
-        println!("{} {:x}", read_only_elf.len(), read_only_elf.len());
-        for b in read_only_elf { 
-            print!("{:02x} ", b); 
-            a = a + 1;
-            if a > 200 {
-                break;
-            }
-        }
-        // parse_and_load_elf_executable(apps[i].start_addr, read_only_elf);
-    }
-}
+        let i = i as usize; println!("===================="); println!("= START OF APP {i} size: {} =", apps[i as usize].size); println!("====================");
 
+        let read_only_elf = unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
+        let elf_file = ElfBytes::<AnyEndian>::minimal_parse(read_only_elf).expect("Could Not Load ELF File From MEM");
+
+        // symbol resolution
+        // After this, the ld exectually know the size of text section and data section.
+        match elf_file.ehdr.e_type {
+            ET_REL => { println!("Detect ET_REL");
+                let (symtabs, strtabs) = elf_file
+                    .symbol_table()
+                    .expect("Failure when parse symtabs from elf file")
+                    .expect("Failure when parse symtabs from elf file");
+
+                for sym in symtabs.iter() {
+                    // Because the corresponding values are not publicly available, we have to gain all of it
+                    let sym_name = strtabs.get(sym.st_name as usize).expect("Failure to get section name");
+                    if sym_name == "" { continue; }
+
+                    let elf_file = ElfBytes::<AnyEndian>::minimal_parse(read_only_elf).expect("Could Not Load ELF File From MEM");
+                    if sym.is_undefined() {
+                        info!("U: push {sym_name}");
+                        U.push((String::from(sym_name), sym.clone(), elf_file))
+                    } else {
+                        info!("D: push {sym_name}");
+                        D.push((sym, elf_file));
+                    }  
+                }
+                let elf_file = ElfBytes::<AnyEndian>::minimal_parse(read_only_elf).expect("Could Not Load ELF File From MEM");
+                elfs.push(elf_file);
+            },
+            ET_DYN => { println!("Detect ET_DYN");
+                // test each elf file if it contains a unresolved symbols
+                let mut remove = Vec::new();
+                for i in 0..U.len() {
+                    let sym_name = &U.get(i).unwrap();
+                    if let Some(obj_sym) = elf_file_contains_symbol(&elf_file, sym_name.0.clone()) {
+                        // detect symbol sucessed
+                        info!("detect symbol {} sucessed", sym_name.0);
+                        let elf_file = ElfBytes::<AnyEndian>::minimal_parse(read_only_elf).expect("Could Not Load ELF File From MEM");
+                        elfs.push(elf_file);
+                        remove.push(i);
+                    }
+                }
+                for idx in (0..remove.len()).rev() {
+                    U.remove(idx);
+                }
+            },
+            ET_EXEC | ET_CORE | ET_LOOS | ET_HIOS | _ => {
+                error!("Input a file with unsupported type: {}", elf_file.ehdr.e_type);
+            },
+        }
+
+
+    }
+
+    println!("+++++++++++++++++++++++++++++");
+    // println!("elfs: {elfs:?}");
+    println!("+++++++++++++++++++++++++++++");
+    println!("E: {E:?}");
+    println!("+++++++++++++++++++++++++++++");
+    println!("U: {U:?}");
+    println!("+++++++++++++++++++++++++++++");
+    println!("D: {D:?}");
+}
 
 const MAX_APP_NUM: usize = u8::MAX as usize;
 #[derive(Clone, Copy)]
@@ -267,4 +336,20 @@ fn find(elf_file: ElfBytes<AnyEndian>) {
             println!("{:?}", sym);
         }
     }
+}
+
+fn elf_file_contains_symbol(elf_file: &ElfBytes<AnyEndian>, sym_name: String) -> Option<Symbol> {  
+    let (symtabs, strtabs) = elf_file
+        .symbol_table()
+        .expect("Failure when parse symtabs from elf file")    
+        .expect("Failure when parse symtabs from elf file");
+
+    // FIXME: If the name is repeated
+    // symtabs.get(sym.st_name as usize); // Conflict may arise outside a given context
+    for sym in symtabs.iter() {
+        match strtabs.get(sym.st_name as usize).unwrap() {
+            sym_name => return Some(sym.clone()),
+        }
+    }
+    None
 }
