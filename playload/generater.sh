@@ -84,7 +84,7 @@ fi
 
 
 function generateBinary() {
-  echo "$(stat -c%s "$BASE_DIR/$1" | xargs printf "%04x")"
+  echo "$(stat -c%s "$BASE_DIR/$1" | xargs printf "%08x")"
 }
 
 app_names=("libc.so")
@@ -107,11 +107,12 @@ echo "==================== TAIL OF GEN ==================="
 
 # # PFLASH 32M ]
 # # PFLASH 32M ] [ NUM_OF_IMAGE ]
-# # PFLASH 32M ] [    u16:2B    ] [ BYTE_LIST:4B*NUM_OF_IMAGE ] 
-# # PFLASH 32M ] [     2B + 4B * NUM_OF_IMAGE                 ] [  ] [  ] [  ] 
+# # PFLASH 32M ] [    u16:2B    ] [ BYTE_LIST:8B*NUM_OF_IMAGE ] 
+# # PFLASH 32M ] [     2B + 8B * NUM_OF_IMAGE                 ] [  ] [  ] [  ] 
 # 
 cd $BASE_DIR
-printf "%02x" $NUM_OF_IMAGE | xxd -r -p >num.bin # NOTE: not allow app > 255
+printf "%02x" $NUM_OF_IMAGE | xxd -r -p > num.bin # NOTE: not allow app > 255
+echo -n "${app_sizes[@]}"
 echo -n "${app_sizes[@]}" | xxd -r -p > size.bin
 echo "size.bin size: $(stat -c%s "./size.bin")"
 
@@ -119,7 +120,7 @@ dd if=/dev/zero   of=./apps.bin              bs=1M count=32
 dd if=./num.bin   of=./apps.bin conv=notrunc 
 dd if=./size.bin  of=./apps.bin conv=notrunc bs=1B seek=2
 
-start_offset=$((2 + 4 * $NUM_OF_IMAGE)) # NUM_OF_IMAGE:2B + IMAGE_SIZE:4B * NUM_OF_IMAGE
+start_offset=$((2 + 8 * $NUM_OF_IMAGE)) # NUM_OF_IMAGE:2B + IMAGE_SIZE:4B * NUM_OF_IMAGE
 echo "start_offset" $start_offset
 for ((i=0; i<${#app_names[@]}; i++)); do
   app_name=${app_names[i]}

@@ -1,7 +1,6 @@
 #![allow(dead_code, unused)]
 #![feature(asm_const)]
-#![cfg_attr(feature = "axstd", no_std)]
-#![cfg_attr(feature = "axstd", no_main)]
+#![cfg_attr(feature = "axstd", no_std)] #![cfg_attr(feature = "axstd", no_main)]
 
 use core::mem::size_of;
 
@@ -35,38 +34,48 @@ fn main() {
     let app_num = u8::from_be_bytes([byte_num[0]]);
     println!("DETACT {app_num} app");
 
-    let byte = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u64>()) };
-    for b in byte { println!("{:08b}", b); }
+    let byte = unsafe { core::slice::from_raw_parts(apps_start, size_of::<u64>() + size_of::<u64>()) };
     println!("===");
     println!("{:x}", unsafe { u16::from_be_bytes([byte[0], byte[1]])});
     println!("{:x}", unsafe { u16::from_be_bytes([byte[2], byte[3]])});
     println!("{:x}", unsafe { u16::from_be_bytes([byte[4], byte[5]])});
     println!("{:x}", unsafe { u16::from_be_bytes([byte[6], byte[7]])});
-
+    println!("===");
+    println!("{:x}", unsafe { u32::from_be_bytes([byte[0], byte[1], byte[2], byte[3]])});
+    println!("{:x}", unsafe { u32::from_be_bytes([byte[4], byte[5], byte[6], byte[7]])});
+    println!("{:x}", unsafe { u32::from_be_bytes([byte[8], byte[9], byte[10], byte[11]])});
+    println!("{:x}", unsafe { u32::from_be_bytes([byte[12], byte[13], byte[14], byte[15]])});
+    println!("===");
+    println!("{:x}", unsafe { u32::from_be_bytes([byte[2], byte[3], byte[4], byte[5]])});
+    println!("{:x}", unsafe { u32::from_be_bytes([byte[6], byte[7], byte[8], byte[7]])});
+    println!("{:x}", unsafe { u32::from_be_bytes([byte[8], byte[9], byte[10], byte[11]])});
+    println!("{:x}", unsafe { u32::from_be_bytes([byte[12], byte[13], byte[14], byte[15]])});
     // Gain Each App Size
     let mut apps: [APP; MAX_APP_NUM] = [APP::empty(); MAX_APP_NUM];
     let byte_apps_sizes = unsafe {
         // NOTE: BC Rust Internal structure autocomplete will fill vacancy, thus u16 rather than u8
         core::slice::from_raw_parts(
-            apps_start.offset(size_of::<u16>() as isize),
-            app_num as usize * size_of::<u16>(),
+            apps_start.offset((size_of::<u16>()) as isize),
+            app_num as usize * size_of::<u32>(),
         )
     };
-    println!("=====");
-    println!("{:x}", unsafe { u16::from_be_bytes([byte_apps_sizes[0], byte_apps_sizes[1]])});
-    println!("{:?}", unsafe { u16::from_be_bytes([byte_apps_sizes[0], byte_apps_sizes[1]]) as usize});
-    println!("=====");
     println!("{:?}", unsafe {apps_start.offset(size_of::<u16>() as isize)});
     println!("{:?}", app_num as usize * size_of::<u16>());
     println!("app sizes: {byte_apps_sizes:?}");
 
-    let mut head_offset = size_of::<u16>() + app_num as usize * size_of::<u32>();
+    // TODO: what the fuck ?
+    let mut head_offset = size_of::<u16>() + app_num as usize * size_of::<u32>() + size_of::<u32>();
     for i in 0..app_num {
         let i = i as usize;
         apps[i] = unsafe {
             APP::new(
                 apps_start.offset(head_offset as isize),
-                u16::from_be_bytes([byte_apps_sizes[i * 2], byte_apps_sizes[i * 2 + 1]]) as usize,
+                u32::from_be_bytes([
+                    byte_apps_sizes[i * 2], 
+                    byte_apps_sizes[i * 2 + 1],
+                    byte_apps_sizes[i * 2 + 2],
+                    byte_apps_sizes[i * 2 + 3],
+                ]) as usize,
             )
         };
         head_offset += apps[i].size;
@@ -94,6 +103,8 @@ fn main() {
             unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
         // println!("{:04x}", read_only_elf);
         let mut a = 0;
+        println!("");
+        println!("{} {:x}", read_only_elf.len(), read_only_elf.len());
         for b in read_only_elf { 
             print!("{:04x} ", b); 
             a = a + 1;
@@ -101,8 +112,6 @@ fn main() {
                 break;
             }
         }
-        println!("");
-        println!("{} {:x}", read_only_elf.len(), read_only_elf.len());
         // println!("====================================================");
 
         parse_and_load_elf_executable(apps[i].start_addr, read_only_elf);
@@ -203,7 +212,8 @@ fn parse_and_load_elf_executable(
             );
         }
     }
-    show_symbol_table(elf_file);
+
+    find(elf_file);
 }
 
 fn show_section_table(elf_file: ElfBytes<AnyEndian>) {
@@ -248,3 +258,21 @@ fn show_symbol_table(elf_file: ElfBytes<AnyEndian>) {
     }
 }
 
+/// A stupid ways to find symbol 
+fn find(elf_file: ElfBytes<AnyEndian>) {
+    println!("--------------------------------------------------");
+    println!("# FIND SYMBOL puts #");
+    // Get the section header table alongside its string table
+    let (symtabs, strtabs) = elf_file 
+        .symbol_table()
+        .expect("shdrs offsets should be valid")
+        .expect("shdrs offsets should be valid");
+
+    for sym in symtabs.iter() {
+        let name = strtabs.get(sym.st_name as usize).expect("Failure to get symbol name");
+        // if we gain the symbol that we want
+        if name == "puts" {
+            println!("{:?}", sym);
+        }
+    }
+}

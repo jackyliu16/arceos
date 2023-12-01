@@ -1,9 +1,11 @@
 // #include <stdio.h>
 // from stdio.h
-// int printf(const char *__restrict, ...);
+int printf(const char *__restrict, ...);
+int puts(const char *);
+
 // capable to run without header file
 
 int main() {
-// printf("Hello, World\n");
+  puts("Hello, World");
   return 0;
 }
