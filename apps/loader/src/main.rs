@@ -2,6 +2,7 @@
 #![feature(asm_const)]
 #![cfg_attr(feature = "axstd", no_std)] #![cfg_attr(feature = "axstd", no_main)]
 
+use core::default;
 use core::mem::size_of;
 use core::ops::Index;
 
@@ -18,6 +19,7 @@ const PLASH_START: usize = 0x2200_0000;
 const LOAD_START: usize  = 0x4010_0000;
 
 use elf::parse::ParseAt;
+use elf::section::SectionHeader;
 use log::{debug, error, info, trace, warn};
 
 // ELF Format Cheatsheet: https://gist.github.com/x0nu11byt3/bcb35c3de461e5fb66173071a2379779
@@ -27,7 +29,9 @@ use elf::ElfBytes;
 use elf::segment::ProgramHeader;
 use elf::symbol::Symbol;
 use elf::abi::{ET_EXEC, ET_REL, ET_DYN, ET_CORE, ET_LOOS, ET_HIOS}; // ELF FILE TYPE
-use elf::abi::{SHT_REL, SHT_RELA}; // SECTION TYPE
+use elf::abi::{SHT_REL, SHT_RELA, SHT_PROGBITS, }; // SECTION TYPE
+use elf::abi::{R_RISCV_CALL, R_RISCV_RELAX}; // RELOCATION TYPE
+use elf::abi::{R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_64, R_RISCV_RELATIVE, R_RISCV_JUMP_SLOT}; // RELOCATION TYPE (relate low)
 use elf::relocation::Rel;
 use elf::file::Class::ELF64;
 
@@ -82,19 +86,19 @@ fn main() {
 
     println!("{apps:?}");
 
-    let test = unsafe { core::slice::from_raw_parts(apps_start, 2000 * size_of::<u8>())}; 
-    println!("{}", size_of::<u8>());
-    let mut cnt = 0;
-    for b in test { 
-        print!("{:02x}", b);
-        if cnt == 1370 {
-            print!("\t");
-            cnt += 1;
-        } else {
-            cnt += 1;
-        };
-    }
-    println!("");
+    // let test = unsafe { core::slice::from_raw_parts(apps_start, 2000 * size_of::<u8>())}; 
+    // println!("{}", size_of::<u8>());
+    // let mut cnt = 0;
+    // for b in test { 
+    //     print!("{:02x}", b);
+    //     if cnt == 1370 {
+    //         print!("\t");
+    //         cnt += 1;
+    //     } else {
+    //         cnt += 1;
+    //     };
+    // }
+    // println!("");
 
     
     unsafe {
@@ -111,9 +115,21 @@ fn main() {
     /// Parsed symbols
     let mut D: Vec<(Symbol, ElfBytes<AnyEndian>)> = Vec::new();
 
+    /// BLUE PRINT
+    /// 
+    /// 1. LOAD APPLICATION
+    /// 2. SYMBOL RESOLUTION: make sure all symbol has been meet.
+    /// 3. RELOCATION:
+    ///     [1] RELOCATION SECTION: 
+    ///         merges all sections of the same type into a new aggregate section of the same typecombine 
+    ///         BC we only need  SHT_PROGBITS thus not care about others (copy).
+    ///     [2] RELOCATE SYMBOL REFERENCES IN SECTIONS: 
+    ///         Modify references to each symbol in code and data sections so that they point to the correct run-time address
+
     // because we need to comtains both redirectable object file and shared object file in mem at
     // the same time, which means we should load they separately in different location.
     // LOAD APPLICATION
+    // NOTE: After this, the ld exectually know the size of text section and data section.
     // NOTE: this loop will do only one times, which demand that the file should be give in order.
     for i in 0..app_num {
         let i = i as usize; println!("===================="); println!("= START OF APP {i} size: {} =", apps[i as usize].size); println!("====================");
@@ -121,8 +137,7 @@ fn main() {
         let read_only_elf = unsafe { core::slice::from_raw_parts(apps[i].start_addr, apps[i].size) };
         let elf_file = ElfBytes::<AnyEndian>::minimal_parse(read_only_elf).expect("Could Not Load ELF File From MEM");
 
-        // symbol resolution
-        // After this, the ld exectually know the size of text section and data section.
+        // SYMBOL RESOLUTION
         match elf_file.ehdr.e_type {
             ET_REL => { println!("Detect ET_REL");
                 let (symtabs, strtabs) = elf_file
@@ -158,6 +173,8 @@ fn main() {
                         let elf_file = ElfBytes::<AnyEndian>::minimal_parse(read_only_elf).expect("Could Not Load ELF File From MEM");
                         elfs.push(elf_file);
                         remove.push(i);
+                        let elf_file = ElfBytes::<AnyEndian>::minimal_parse(read_only_elf).expect("Could Not Load ELF File From MEM");
+                        D.push((obj_sym, elf_file));
                     }
                 }
                 for idx in (0..remove.len()).rev() {
@@ -168,18 +185,124 @@ fn main() {
                 error!("Input a file with unsupported type: {}", elf_file.ehdr.e_type);
             },
         }
+    }
+
+    // RELOCATION[1]: RELOCATE SECTION AND SYMBOL DEFINITIONS:
+    //  NOTE: Currently, Seems there is no ways to merge section in diff elf_file and same name into one, we have to use this ways to gain it.
+    //  Maybe in future it could be replace by some automatic Vec or others, but not now.
+    let mut sec_text: Vec<(&ElfBytes<AnyEndian>, usize)> = Vec::new();
+    let mut sec_data: Vec<(&ElfBytes<AnyEndian>, usize)> = Vec::new();
+
+    /// pointer to the Last unallocated run-time address 
+    let mut unallocated_pointer = LOAD_START;
+    /// a map between (Elf, Section) to run-time address
+    let section_start_addrs_map: BTreeMap<(ElfBytes<AnyEndian>, SectionHeader), usize> = BTreeMap::new();
+
+    for i in 0..app_num {
+        let i = i as usize;
+        let elf_file = &elfs[i];
+
+        let (shdrs_opt, strtab_opt) = elf_file 
+            .section_headers_with_strtab()
+            .expect("shdrs offsets should be valid");
+        let (shdrs, strtab) = (
+            shdrs_opt.expect("Should have shdrs"),
+            strtab_opt.expect("Should have strtab")
+        );
+
+        // find which section should be relocated
+        for shdr in shdrs.iter() {
+            match shdr.sh_type {
+                SHT_PROGBITS => { info!("SHT_PROGBITS"); // LOAD .data and .text into mem
+                    if let Ok(name) = strtab.get(shdr.sh_name as usize) {
+                        match name { 
+                            ".text" => { sec_text.push((elf_file, shdr.sh_name as usize)); } 
+                            ".data" => { sec_data.push((elf_file, shdr.sh_name as usize)); } 
+                            _ => { trace!("Skip Section Name: {}", shdr.sh_type); },
+                        }
+                    } 
+                },
+                _ => { trace!("Skip Section TYPE: {}", shdr.sh_type); },
+            }
+        }
+    }
+    for sec in &sec_text {
+        println!("{}", sec.1);
+    }
+    for i in 0..app_num {
+        let i = i as usize;
+        for (file, idx) in &sec_text {
+            if let Some(sectab) = file.section_headers() {
+                println!("idx: {idx}");
+                println!("idx: {}", *idx);
+                let sec = sectab.get(*idx).unwrap();
+                let read_only_data = unsafe {
+                    core::slice::from_raw_parts(apps[i].start_addr.offset(sec.sh_offset as isize), sec.sh_size as usize)
+                };
+                let load_areas = unsafe { 
+                    core::slice::from_raw_parts_mut(unallocated_pointer as *mut u8, sec.sh_size as usize)
+                };
+                load_areas.copy_from_slice(read_only_data); 
+                unallocated_pointer += sec.sh_size as usize;
+            }
+        }
+    }
 
 
+    // 2. RELOCATE SYMBOL REFERENCES IN SECTIONS
+    for i in 0..app_num {
+        let i = i as usize;
+        // relocation
+
+        let elf_file = &elfs[i];
+
+        let (shdrs_opt, strtab_opt) = elf_file 
+            .section_headers_with_strtab()
+            .expect("shdrs offsets should be valid");
+        let (shdrs, strtab) = (
+            shdrs_opt.expect("Should have shdrs"),
+            strtab_opt.expect("Should have strtab")
+        );
+
+
+        for shdr in shdrs.iter() {
+            match shdr.sh_type {
+                SHT_REL | SHT_RELA => { // Relocate Symbol References in sections
+                    if let Ok(iter_rel) = elf_file.section_data_as_rels(&shdr) {
+                        for rel in iter_rel {
+                            debug!("REL");
+                        }
+                    }
+
+                    if let Ok(iter_rela) = elf_file.section_data_as_relas(&shdr) {
+                        for rela in iter_rela {
+                            debug!("RELA");
+                            trace!("{:?}", rela);
+                            match rela.r_type {
+                                R_RISCV_64 => { info!("R_RISCV_64"); },                 // 2
+                                R_RISCV_RELATIVE => { info!("R_RISCV_RELATIVE"); },     // 3
+                                R_RISCV_JUMP_SLOT => { info!("R_RISCV_JUMP_SLOT"); },   // 5
+                                R_RISCV_CALL => { info!("R_RISCV_CALL"); },             // 18
+                                _ => { debug!("UNKNOWN RELA TYPE: {}", rela.r_type); }
+                            }
+                        }
+                    }
+                },
+                _ => {
+                    trace!("SECTION TYPE {} NOT DETECT", shdr.sh_type);
+                }
+            }
+        }
     }
 
     println!("+++++++++++++++++++++++++++++");
     // println!("elfs: {elfs:?}");
     println!("+++++++++++++++++++++++++++++");
-    println!("E: {E:?}");
-    println!("+++++++++++++++++++++++++++++");
-    println!("U: {U:?}");
-    println!("+++++++++++++++++++++++++++++");
-    println!("D: {D:?}");
+    // println!("E: {E:?}");
+    // println!("+++++++++++++++++++++++++++++");
+    // println!("U: {U:?}");
+    // println!("+++++++++++++++++++++++++++++");
+    // println!("D: {D:?}");
 }
 
 const MAX_APP_NUM: usize = u8::MAX as usize;
@@ -352,4 +475,8 @@ fn elf_file_contains_symbol(elf_file: &ElfBytes<AnyEndian>, sym_name: String) ->
         }
     }
     None
+}
+
+fn relocate_symbol_references() {
+
 }
