@@ -1559,6 +1559,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "raspi4-gpio"
+version = "0.1.0"
+dependencies = [
+ "arm_pl011",
+ "axstd",
+]
+
+[[package]]
 name = "ratio"
 version = "0.1.0"
 
