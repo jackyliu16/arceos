@@ -9,19 +9,19 @@ use crate::dma::DMAVec;
 pub use crate::host::USBHostDriverOps;
 use driver_common::*;
 use driver_pci::{
-    types::{Bar, ConfigKind, ConfigSpace},
+    types::{Bar, ConfigCommand, ConfigKind, ConfigSpace},
     PciAddress,
 };
-use log::debug;
+use log::{debug, info};
 
 const VL805_VENDOR_ID: u16 = 0x1106;
 const VL805_DEVICE_ID: u16 = 0x3483;
 
-pub struct VL805 {
-    bdf: PciAddress,
+pub struct VL805<A: Allocator + Clone> {
+    alloc: A,
 }
 
-impl BaseDriverOps for VL805 {
+impl<A: Allocator + Clone + Sync + Send> BaseDriverOps for VL805<A> {
     fn device_name(&self) -> &str {
         "VL805 4-Port USB 3.0 Host Controller"
     }
@@ -31,14 +31,31 @@ impl BaseDriverOps for VL805 {
     }
 }
 
-impl VL805 {
-    fn new(bdf: PciAddress) -> Self {
-        VL805 { bdf }
-    }
-}
+impl<A: Allocator + Clone> VL805<A> {
+    fn new(mmio_base: usize, alloc: A) -> Self {
+        let mapper = MemoryMapper;
+        let regs: xhci::Registers<MemoryMapper> =
+            unsafe { xhci::Registers::new(mmio_base, mapper) };
+        let version = regs.capability.hciversion.read_volatile();
+        debug!("xhci version: {:x}", version.get());
+        let mut o = regs.operational;
+        debug!("xhci stat: {:?}", o.usbsts.read_volatile());
 
-impl VL805 {
-    pub fn probe_pci<A: Allocator>(config: &ConfigSpace, dma_alloc: &A) -> Option<Self> {
+        debug!("xhci wait for ready...");
+        while o.usbsts.read_volatile().controller_not_ready() {}
+        info!("xhci ok");
+
+        o.usbcmd.update_volatile(|f| {
+            f.set_host_controller_reset();
+        });
+
+        while o.usbcmd.read_volatile().host_controller_reset() {}
+
+        info!("XHCI reset HC");
+
+        VL805 { alloc }
+    }
+    pub fn probe_pci(config: &ConfigSpace, dma_alloc: A) -> Option<Self> {
         let (vendor_id, device_id) = config.header.vendor_id_and_device_id();
         if !(vendor_id == VL805_VENDOR_ID && device_id == VL805_DEVICE_ID) {
             return None;
@@ -52,14 +69,19 @@ impl VL805 {
                 prefetchable,
             } = bar
             {
-                let mut dma: DMAVec<'_, A, u8> = DMAVec::new(0x100, 0x1000, dma_alloc);
+                let mut dma: DMAVec<A, u8> = DMAVec::new(0x100, 0x1000, dma_alloc.clone());
                 let mbox = Mailbox::new();
                 let msg = MsgNotifyXhciReset {};
                 mbox.send(&msg, &mut dma);
 
                 debug!("VL805 @0x{:X}", address);
-
-                let vl805 = VL805::new(config.address);
+                config.header.set_command([
+                    ConfigCommand::MemorySpaceEnable,
+                    ConfigCommand::BusMasterEnable,
+                    ConfigCommand::ParityErrorResponse,
+                    ConfigCommand::SERREnable,
+                ]);
+                let vl805 = VL805::new(address as _, dma_alloc);
                 return Some(vl805);
             }
         }
