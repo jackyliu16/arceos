@@ -15,7 +15,6 @@ use log::{debug, trace};
 const GPIO_REGS_BASE_ADDRESS: *mut usize = 0x7e200000 as *mut usize;
 
 register_structs! {
-    /// GPIO registers.
     GPIORegs {
         (0x00 => GPFSEL0: ReadWrite<u32, GPFSEL0::Register>),   // GPIO Function Select
         (0x04 => GPFSEL1: ReadWrite<u32, GPFSEL1::Register>),
@@ -23,11 +22,13 @@ register_structs! {
         (0x0c => GPFSEL3: ReadWrite<u32, GPFSEL3::Register>),
         (0x10 => GPFSEL4: ReadWrite<u32, GPFSEL4::Register>),
         (0x14 => GPFSEL5: ReadWrite<u32, GPFSEL5::Register>),
+        (0x18 => _reserved),
         (0x1c => GPSET0: ReadWrite<u32, GPSET0::Register>),     // GPIO Pin Output Set
         (0x20 => GPSET1: ReadWrite<u32, GPSET1::Register>),
+        (0x24 => _reserved1),
         (0x28 => GPCLR0: ReadWrite<u32, GPCLR0::Register>),     // GPIO Pin Output Clear
         (0x2c => GPCLR1: ReadWrite<u32, GPCLR1::Register>),
-        (0x34 => @END),
+        (0x30 => @END),
     }
 }
 
@@ -122,7 +123,6 @@ register_bitfields! {
 }
 
 pub struct GPIO {
-    // in some design, this should not b
     base: NonNull<GPIORegs>,
 }
 
@@ -159,30 +159,4 @@ impl GPIO {
         trace!("output {c}");
         todo!()
     }
-
-    // /// Output a char c to data register
-    // pub fn putchar(&mut self, c: u8) {
-    //     while self.regs().fr.get() & (1 << 5) != 0 {}
-    //     self.regs().dr.set(c as u32);
-    // }
-    //
-    // /// Return a byte if pl011 has received, or it will return `None`.
-    // pub fn getchar(&mut self) -> Option<u8> {
-    //     if self.regs().fr.get() & (1 << 4) == 0 {
-    //         Some(self.regs().dr.get() as u8)
-    //     } else {
-    //         None
-    //     }
-    // }
-    //
-    // /// Return true if pl011 has received an interrupt
-    // pub fn is_receive_interrupt(&self) -> bool {
-    //     let pending = self.regs().mis.get();
-    //     pending & (1 << 4) != 0
-    // }
-    //
-    // /// Clear all interrupts
-    // pub fn ack_interrupts(&mut self) {
-    //     self.regs().icr.set(0x7ff);
-    // }
 }

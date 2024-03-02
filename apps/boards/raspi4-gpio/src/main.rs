@@ -27,6 +27,6 @@ fn delay(seconds: u64) {
 fn main() {
     println!("Hello, world!");
 
-    let mut gpio = GPIO::new();
+    let mut gpio: GPIO = GPIO::new();
     gpio.enable_pin_input(21);
 }
