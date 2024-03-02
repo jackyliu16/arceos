@@ -17,56 +17,112 @@ const GPIO_REGS_BASE_ADDRESS: *mut usize = 0x7e200000 as *mut usize;
 register_structs! {
     /// GPIO registers.
     GPIORegs {
-        (0x00 => _reserved1),
+        (0x00 => GPFSEL0: ReadWrite<u32, GPFSEL0::Register>),   // GPIO Function Select
         (0x04 => GPFSEL1: ReadWrite<u32, GPFSEL1::Register>),
-        (0x08 => _reserved2),
-        (0x94 => GPPUD: ReadWrite<u32, GPPUD::Register>),
-        (0x98 => GPPUDCLK0: ReadWrite<u32, GPPUDCLK0::Register>),
-        (0x9C => _reserved3),
-        (0xE4 => GPIO_PUP_PDN_CNTRL_REG0: ReadWrite<u32, GPIO_PUP_PDN_CNTRL_REG0::Register>),
-        (0xE8 => @END),
+        (0x08 => GPFSEL2: ReadWrite<u32, GPFSEL2::Register>),
+        (0x0c => GPFSEL3: ReadWrite<u32, GPFSEL3::Register>),
+        (0x10 => GPFSEL4: ReadWrite<u32, GPFSEL4::Register>),
+        (0x14 => GPFSEL5: ReadWrite<u32, GPFSEL5::Register>),
+        (0x1c => GPSET0: ReadWrite<u32, GPSET0::Register>),     // GPIO Pin Output Set
+        (0x20 => GPSET1: ReadWrite<u32, GPSET1::Register>),
+        (0x28 => GPCLR0: ReadWrite<u32, GPCLR0::Register>),     // GPIO Pin Output Clear
+        (0x2c => GPCLR1: ReadWrite<u32, GPCLR1::Register>),
+        (0x34 => @END),
     }
 }
 
+// generate GPFSELx scripts: https://pastebin.ubuntu.com/p/yYm5wVJnRV/
 register_bitfields! {
     u32,
-
-/// GPIO Function Select 1
-    GPFSEL1 [
-        /// Pin 15
-        FSEL15 OFFSET(15) NUMBITS(3) [
-            Input = 0b000,
-            Output = 0b001,
-            AltFunc0 = 0b100  // PL011 UART RX
-        ],
-
-        /// Pin 14
-        FSEL14 OFFSET(15) NUMBITS(3) [
-            Input = 0b000,
-            Output = 0b001,
-            AltFunc0 = 0b100  // PL011 UART TX
-        ]
+    
+    GPFSEL0 [ // GPIO Function Select 1
+        FSEL9 OFFSET(27) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL8 OFFSET(24) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL7 OFFSET(21) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL6 OFFSET(18) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL5 OFFSET(15) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL4 OFFSET(12) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL3 OFFSET(9)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL2 OFFSET(6)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL1 OFFSET(3)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL0 OFFSET(0)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
     ],
-
-    /// GPIO Pull-up / Pull-down Register 0
-    ///
-    /// BCM2711 only.
-    GPIO_PUP_PDN_CNTRL_REG0 [
-        /// Pin 15
-        GPIO_PUP_PDN_CNTRL15 OFFSET(30) NUMBITS(2) [
-            NoResistor = 0b00,
-            PullUp = 0b01
-        ],
-
-        /// Pin 14
-        GPIO_PUP_PDN_CNTRL14 OFFSET(28) NUMBITS(2) [
-            NoResistor = 0b00,
-            PullUp = 0b01
-        ]
-    ]
+    GPFSEL1 [ // GPIO Function Select 1
+        FSEL19 OFFSET(27) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL18 OFFSET(24) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL17 OFFSET(21) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL16 OFFSET(18) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL15 OFFSET(15) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL14 OFFSET(12) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL13 OFFSET(9)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL12 OFFSET(6)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL11 OFFSET(3)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL10 OFFSET(0)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+    ],
+    GPFSEL2 [ // GPIO Function Select 2
+        FSEL29 OFFSET(27) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL28 OFFSET(24) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL27 OFFSET(21) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL26 OFFSET(18) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL25 OFFSET(15) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL24 OFFSET(12) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL23 OFFSET(9)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL22 OFFSET(6)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL21 OFFSET(3)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL20 OFFSET(0)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+    ],
+    GPFSEL3 [ // GPIO Function Select 3
+        FSEL39 OFFSET(27) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL38 OFFSET(24) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL37 OFFSET(21) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL36 OFFSET(18) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL35 OFFSET(15) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL34 OFFSET(12) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL33 OFFSET(9)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL32 OFFSET(6)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL31 OFFSET(3)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL30 OFFSET(0)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+    ],
+    GPFSEL4 [ // GPIO Function Select 4
+        FSEL49 OFFSET(27) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL48 OFFSET(24) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL47 OFFSET(21) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL46 OFFSET(18) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL45 OFFSET(15) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL44 OFFSET(12) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL43 OFFSET(9)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL42 OFFSET(6)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL41 OFFSET(3)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL40 OFFSET(0)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+    ],
+    GPFSEL5 [ // GPIO Function Select 5
+        FSEL57 OFFSET(21) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL56 OFFSET(18) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL55 OFFSET(15) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL54 OFFSET(12) NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL53 OFFSET(9)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL52 OFFSET(6)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL51 OFFSET(3)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+        FSEL50 OFFSET(0)  NUMBITS(3) [ Input = 0b000, Output = 0b001, AltFunc0 = 0b100, AltFunc1 = 0b101, AltFunc2 = 0b110, AltFunc3 = 0b111, AltFunc4 = 0b011, AltFunc5 = 0b010, ],
+    ],
+    
+    // ref: https://github.com/nihalpasham/rustBoot/blob/8437fd2a6ebf79d68a885da895e009fafccfccee/boards/hal/src/nxp/imx8mn/bsp/drivers/gpio.rs#L133
+    GPSET0 [ // GPIO Pin Output set 0..31
+        PIN OFFSET(0) NUMBITS(31) [],
+    ],
+    GPSET1 [ // GPIO Pin Output set 32..57 
+        PIN OFFSET(0) NUMBITS(31) [],
+    ],
+    GPCLR0 [ // GPIO Pin Output clear 0..31
+        PIN OFFSET(0) NUMBITS(31) [],
+    ],
+    GPCLR1 [ // GPIO Pin Output clear 32..57
+        PIN OFFSET(0) NUMBITS(31) [],
+    ],
 }
 
 pub struct GPIO {
+    // in some design, this should not b
     base: NonNull<GPIORegs>,
 }
 
@@ -95,7 +151,7 @@ impl GPIO {
     /// enable pins gpio_input
     pub fn enable_pin_input(&mut self, c: u8) {
         trace!("input {c}");
-        todo!()
+        assert!(c <= 57);
     }
 
     /// enable pins gpio output
