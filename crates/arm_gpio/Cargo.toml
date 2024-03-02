@@ -1,0 +1,12 @@
+[package]
+name = "arm_gpio"
+version = "0.1.0"
+edition = "2021"
+authors = ["Yilong Liu <18922251299@163.com>"]
+description = "ARM GPIO register definitions and basic operations"
+license = "GPL-3.0-or-later OR Apache-2.0"
+
+[dependencies]
+tock-registers = "0.8"
+cfg-if = "1.0"
+log = "0.4.0"

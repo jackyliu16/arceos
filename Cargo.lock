@@ -250,6 +250,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "arm_gpio"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "log",
+ "tock-registers 0.8.1",
+]
+
+[[package]]
 name = "arm_pl011"
 version = "0.1.0"
 dependencies = [
@@ -1562,6 +1571,7 @@ dependencies = [
 name = "raspi4-gpio"
 version = "0.1.0"
 dependencies = [
+ "arm_gpio",
  "arm_pl011",
  "axstd",
 ]

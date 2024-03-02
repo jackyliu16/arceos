@@ -1,6 +1,7 @@
 #![cfg_attr(feature = "axstd", no_std)]
 #![cfg_attr(feature = "axstd", no_main)]
 
+use arm_gpio::GPIO;
 use arm_pl011::pl011::Pl011Uart;
 use axstd::println;
 
@@ -25,4 +26,7 @@ fn delay(seconds: u64) {
 #[no_mangle]
 fn main() {
     println!("Hello, world!");
+
+    let mut gpio = GPIO::new();
+    gpio.enable_pin_input(21);
 }
