@@ -133,7 +133,7 @@ unsafe impl Send for GPIO {}
 unsafe impl Sync for GPIO {}
 
 impl GPIO {
-    pub const fn new() -> Self {
+    pub const unsafe fn new() -> Self {
         Self {
             base: NonNull::new(GPIO_REGS_BASE_ADDRESS).unwrap().cast(),
         }

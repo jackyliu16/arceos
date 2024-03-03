@@ -27,21 +27,23 @@ fn delay(seconds: u64) {
 fn main() {
     println!("Hello, world!");
 
-    let mut gpio: GPIO = GPIO::new();
-    // gpio.enable_pin_output(20);
-    gpio.enable_pin_output(21);
-    println!("Hello, world!");
+    unsafe {
+        let mut gpio: GPIO = GPIO::new();
+        // gpio.enable_pin_output(20);
+        gpio.enable_pin_output(21);
+        println!("Hello, world!");
 
-    // gpio.set_high(20);
-    gpio.set_high(21);
-    println!("Hello, world!");
-
-    loop {
         // gpio.set_high(20);
-        gpio.set_low(21);
-        delay(3);
         gpio.set_high(21);
-        // gpio.set_low(20);
-        delay(3);
+        println!("Hello, world!");
+
+        loop {
+            // gpio.set_high(20);
+            gpio.set_low(21);
+            delay(3);
+            gpio.set_high(21);
+            // gpio.set_low(20);
+            delay(3);
+        }
     }
 }
