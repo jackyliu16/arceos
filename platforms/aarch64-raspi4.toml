@@ -35,7 +35,6 @@ uart-irq = "0x79"
 gicc-paddr = "0xFF84_2000"
 gicd-paddr = "0xFF84_1000"
 
-
 # Base physical address of the PCIe ECAM space.
 pci-ecam-base = "0xfd50_0000"
 # End PCI bus number.
@@ -55,3 +54,15 @@ pci-ranges = [
 
 # Size of the nocache memory region
 nocache-memory-size = "0x2_0000"
+
+# -------------------------------------------------- 
+# The following is based on circle: https://github.com/rsta2/circle/blob/master/include/circle/bcm2711.h
+# Could be use as axconfig::BCM54213_BASE_START
+# -------------------------------------------------- 
+
+# BCM54213PE Gigabit Ethernet Transceiver (external)
+bcm54213_base_start = "0xFD580000"
+bcm54213_mdio_start = "0xFD580E14"
+bcm54213_mdio_end   = "0xFD580E1B"
+bcm54213_base_end   = "0xFD58FFFF"
+
