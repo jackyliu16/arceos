@@ -114,7 +114,11 @@ register_structs! {
         (0xd00 => channel13: DMA4Channel),
         (0xd30 => _reserved13),
         (0xe00 => channel14: DMA4Channel),
-        (0xe30 => @END),
+        (0xe30 => _reserved14),
+        (0xfe0 => INT_STATUS: ReadWrite<u32, INT_STATUS::Register>),
+        (0xfe4 => _reserved15),
+        (0xff0 => ENABLE: ReadWrite<u32, GLOBAL_ENABLE::Register>),
+        (0xff4 => @END),
     }
 }
 
