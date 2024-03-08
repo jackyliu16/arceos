@@ -153,6 +153,7 @@ version = "0.1.0"
 dependencies = [
  "arm_pl011",
  "axstd",
+ "driver_bcmgenet",
 ]
 
 [[package]]
@@ -909,6 +910,9 @@ dependencies = [
 [[package]]
 name = "driver_bcmgenet"
 version = "0.1.0"
+dependencies = [
+ "tock-registers 0.8.1",
+]
 
 [[package]]
 name = "driver_block"
