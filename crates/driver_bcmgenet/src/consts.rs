@@ -36,6 +36,8 @@ const ARM_BCM54213_END: usize = (ARM_BCM54213_BASE + 0xFFFF);
 const DMA_CHANNEL_BASE: usize = ARM_IO_BASE + 0x7000;
 const DMA_CHANNEL_OFFSET: usize = 0x0100;
 
+use core::fmt;
+
 use tock_registers::{
     interfaces::{ReadWriteable, Writeable},
     register_bitfields, register_structs,
@@ -383,4 +385,28 @@ register_bitfields! {
         EN1 OFFSET(1) NUMBITS(1),
         EN0 OFFSET(0) NUMBITS(1),
     ]
+}
+
+enum SpeedLevel {
+    Base10THalfDuplex,
+    Base10TFullDuplex,
+    Base100TxHalfDuplex,
+    Base100TxFullDuplex,
+    Base1000THalfDuplex,
+    Base1000TFullDuplex,
+    Unknown,
+}
+
+impl fmt::Display for SpeedLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SpeedLevel::Base10THalfDuplex => write!(f, "10BASE-T Half-duplex"),
+            SpeedLevel::Base10TFullDuplex => write!(f, "10BASE-T Full-duplex"),
+            SpeedLevel::Base100TxHalfDuplex => write!(f, "100BASE-T Half-duplex"),
+            SpeedLevel::Base100TxFullDuplex => write!(f, "100BASE-T Full-duplex"),
+            SpeedLevel::Base1000THalfDuplex => write!(f, "1000BASE-T Half-duplex"),
+            SpeedLevel::Base1000TFullDuplex => write!(f, "1000BASE-T Full-duplex"),
+            SpeedLevel::Unknown | _ => write!(f, "Unknown"),
+        }
+    }
 }
