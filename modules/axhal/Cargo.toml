@@ -18,6 +18,13 @@ irq = []
 tls = ["alloc"]
 default = []
 
+platform-qemu-virt-aarch64 = [
+    "axconfig/platform-qemu-virt-aarch64",
+]
+platform-raspi4-aarch64 = [
+    "axconfig/platform-raspi4-aarch64",
+]
+
 [dependencies]
 log = "0.4"
 cfg-if = "1.0"

@@ -76,7 +76,7 @@ members = [
     "apps/cli",
     "apps/boards/raspi4",   
     "apps/boards/raspi4-usb",
-    "apps/boards/raspi4-gpio", "crates/driver_bcmgenet",
+    "apps/boards/raspi4-gpio", "crates/driver_bcmgenet", "apps/boards/raspi4-net",
 ]
 
 

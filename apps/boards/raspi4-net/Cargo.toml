@@ -1,0 +1,11 @@
+[package]
+name = "raspi4-net"
+version = "0.1.0"
+edition = "2021"
+authors = ["yilong liu <18922251299@163.com>"]
+description = "Test script of raspi4 network interface card"
+license = "GPL-3.0-or-later OR Apache-2.0"
+
+[dependencies]
+libax = { path = "../../../ulib/libax", default-features = false, features = ["paging", "multitask", "irq"] }
+axstd = { path = "../../../ulib/axstd", optional = true }
