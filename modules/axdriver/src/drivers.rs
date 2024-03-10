@@ -3,9 +3,7 @@
 #![allow(unused_imports)]
 
 use crate::AxDeviceEnum;
-use axalloc::{global_allocator, global_no_cache_allocator};
 use driver_common::DeviceType;
-use driver_pci::{types::ConfigSpace, PciAddress};
 
 #[cfg(feature = "virtio")]
 use crate::virtio::{self, VirtIoDevMeta};
@@ -86,28 +84,6 @@ cfg_if::cfg_if! {
     }
 }
 
-//vl805
-cfg_if::cfg_if! {
-    if #[cfg(usb_host_dev = "vl805")] {
-        use axalloc::GlobalNoCacheAllocator;
-        pub struct VL805Driver;
-        register_usb_host_driver!(VL805Driver, driver_usb::host::xhci::vl805::VL805<GlobalNoCacheAllocator>);
-        use driver_usb::host::xhci::vl805::VL805;
-
-        impl DriverProbe for VL805Driver {
-            fn probe_pci(
-                    root: &mut PciRoot,
-                    bdf: DeviceFunction,
-                    dev_info: &DeviceFunctionInfo,
-                    cfg: &ConfigSpace,
-                ) -> Option<AxDeviceEnum> {
-              
-                VL805::probe_pci(cfg, global_no_cache_allocator()).map(|d| AxDeviceEnum::from_usb_host(d))
-            }
-        }
-    }
-}
-
 cfg_if::cfg_if! {
     if #[cfg(net_dev = "ixgbe")] {
         use crate::ixgbe::IxgbeHalImpl;
@@ -164,6 +140,28 @@ cfg_if::cfg_if! {
                         }
                     }
                     None
+            }
+        }
+    }
+}
+
+cfg_if::cfg_if! {
+    if #[cfg(net_dev = "bcm54213")] {
+        use driver_net::{EthernetAddress, NetBuf, NetBufBox, NetBufPool, NetBufPtr};
+
+        pub struct Bcm54213Driver;
+        use crate::bcm54213::Bcm54213HalImpl;
+        register_net_driver!(Bcm54213Driver, driver_net::bcm54213::Bcm54213Nic<Bcm54213HalImpl>);
+
+        impl DriverProbe for Bcm54213Driver {
+            fn probe_global() -> Option<AxDeviceEnum> {
+                // NOTE: HAL Impl for Bcm54213Hal
+                // This traits will be settings in modules/axnet
+                // But impl in here.
+                use crate::bcm54213::Bcm54213HalImpl;
+                use driver_net::bcm54213::Bcm54213Nic;
+                let bcm54213Nic = Bcm54213Nic::init(Bcm54213HalImpl);
+                return Some(AxDeviceEnum::from_net(bcm54213Nic));
             }
         }
     }

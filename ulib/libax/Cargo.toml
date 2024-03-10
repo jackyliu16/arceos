@@ -46,8 +46,7 @@ use-ramdisk = ["axdriver?/ramdisk", "axfs?/use-ramdisk"]
 # Networking
 net = ["alloc", "axruntime/net", "dep:axdriver", "dep:axnet"]
 phy = ["alloc", "axruntime/net", "dep:axdriver", "dep:axnet"]
-# cviteknic = ["alloc", "axruntime/cviteknic", "axdriver?/cviteknic", "dep:axnet"]
-# cvitekphy = ["alloc", "axruntime/cvitekphy","axdriver?/cvitekphy","dep:axnet"]
+bcm54213 = ["alloc", "axruntime/net", "axdriver/bcm54213", "dep:axnet"]
 # Pipe
 pipe = ["alloc"]
 

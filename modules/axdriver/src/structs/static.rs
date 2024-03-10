@@ -6,6 +6,7 @@ pub use crate::drivers::AxDisplayDevice;
 pub use crate::drivers::AxNetDevice;
 #[cfg(feature = "usb_host")]
 pub use crate::drivers::AxUSBHostDevice;
+use log::debug;
 
 impl super::AxDeviceEnum {
     /// Constructs a network device.
@@ -24,8 +25,8 @@ impl super::AxDeviceEnum {
     #[cfg(feature = "display")]
     pub const fn from_display(dev: AxDisplayDevice) -> Self {
         Self::Display(dev)
-    }    
-    
+    }
+
     /// Constructs a usb host device.
     #[cfg(feature = "usb_host")]
     pub const fn from_usb_host(dev: AxUSBHostDevice) -> Self {
@@ -67,6 +68,7 @@ impl<D> AxDeviceContainer<D> {
     /// Adds one device into the container.
     #[allow(dead_code)]
     pub(crate) fn push(&mut self, dev: D) {
+        debug!("push new net device");
         if self.0.is_none() {
             self.0 = Some(dev);
         }

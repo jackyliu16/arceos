@@ -11,6 +11,7 @@ documentation = "https://rcore-os.github.io/arceos/driver_net/index.html"
 
 [features]
 default = []
+bcm54213 = ["dep:driver_bcm54213"]
 ixgbe = ["dep:ixgbe-driver"]
 
 [dependencies]
@@ -18,3 +19,4 @@ spin = "0.9"
 log = "0.4"
 driver_common = { path = "../driver_common" }
 ixgbe-driver = {git = "https://github.com/KuangjuX/ixgbe-driver.git", rev = "8e5eb74", optional = true}
+driver_bcm54213 = { path = "../driver_bcm54213", optional = true }

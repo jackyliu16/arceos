@@ -962,6 +962,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "driver_bcm54213"
+version = "0.1.0"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "driver_bcmgenet"
 version = "0.1.0"
 dependencies = [
@@ -992,6 +999,7 @@ dependencies = [
 name = "driver_net"
 version = "0.1.0"
 dependencies = [
+ "driver_bcm54213",
  "driver_common",
  "ixgbe-driver",
  "log",

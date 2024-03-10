@@ -47,6 +47,11 @@ macro_rules! for_each_drivers {
             type $drv_type = <virtio::VirtIoNet as VirtIoDevMeta>::Driver;
             $code
         }
+        #[cfg(net_dev = "bcm54213")]
+        {
+            type $drv_type = crate::drivers::Bcm54213Driver;
+            $code
+        }
         #[cfg(block_dev = "virtio-blk")]
         {
             type $drv_type = <virtio::VirtIoBlk as VirtIoDevMeta>::Driver;
