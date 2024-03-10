@@ -3,6 +3,8 @@
 
 extern crate alloc;
 
+mod consts;
+use consts::*;
 mod netspeed;
 
 use alloc::string::String;
@@ -50,6 +52,23 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
 
     pub fn init(&mut self) {
         info!("Init Bcm54213NicDevice");
+
+        // u32 reg = sys_readl (SYS_REV_CTRL);	// read GENET HW version
+        // u8 major = (reg >> 24 & 0x0f);
+        // if (major == 6)
+        //  major = 5;
+        // else if (major == 5)
+        //  major = 4;
+        // else if (major == 0)
+        //  major = 1;
+        // if (major != GENET_V5)
+        // {
+        //  CLogger::Get ()->Write (FromBcm54213, LogError,
+        //     "GENET version mismatch, got: %d, configured for: %d",
+        //     (unsigned) major, GENET_V5);
+        //
+        //  return FALSE;
+        // }
     }
 }
 
