@@ -1,9 +1,16 @@
 #![no_std]
 #![allow(dead_code, unused)]
 
+extern crate alloc;
+
+mod netspeed;
+
+use alloc::string::String;
+use alloc::{fmt, format};
 use core::marker::PhantomData;
 use core::ptr::{read_volatile, write_volatile, NonNull};
 use log::{debug, info, trace};
+use netspeed::LinkSpeed;
 
 pub trait Bcm54213HalTraits {
     fn phys_to_virt(pa: usize) -> usize {
@@ -24,6 +31,7 @@ pub trait Bcm54213HalTraits {
 pub struct Bcm54213NicDevice<A: Bcm54213HalTraits> {
     iobase_pa: usize,
     iobase_va: usize,
+    link_speed: LinkSpeed,
     phantom: PhantomData<A>,
 }
 
@@ -33,6 +41,7 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         let mut nic = Bcm54213NicDevice::<A> {
             iobase_pa,
             iobase_va,
+            link_speed: LinkSpeed::NetDeviceSpeedUnknown, // TODO
             phantom: PhantomData,
         };
         nic.init();
@@ -46,9 +55,8 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
 
 // base on circle
 pub trait CNetDevice {
-    fn get_device_type();
     fn get_mac_address(&self) -> [u8; 6];
-    fn get_link_speed();
+    fn get_link_speed(&self) -> String;
     fn get_net_device();
     fn is_send_frame_advisable() -> bool;
     fn is_link_up() -> bool;
@@ -60,8 +68,8 @@ pub trait CNetDevice {
 }
 
 impl<A: Bcm54213HalTraits> CNetDevice for Bcm54213NicDevice<A> {
-    fn get_device_type() {}
     fn get_mac_address(&self) -> [u8; 6] {
+        trace!("get_mac_address");
         let mut ret: [u8; 6] = [0; 6];
         unsafe {
             // TODO CHANGE IT CORRECT
@@ -76,23 +84,33 @@ impl<A: Bcm54213HalTraits> CNetDevice for Bcm54213NicDevice<A> {
         }
         ret
     }
-    fn get_link_speed() {}
-    fn get_net_device() {}
+    fn get_link_speed(&self) -> String {
+        trace!("get_link_speed");
+        format!("{}", self.link_speed)
+    }
+    fn get_net_device() {
+        trace!("get_net_device");
+    }
     fn is_send_frame_advisable() -> bool {
+        trace!("is_send_frame_advisable");
         true
     }
     fn is_link_up() -> bool {
+        trace!("is_link_up");
         true
     }
 
     fn send_frame() -> bool {
+        trace!("send_frame");
         true
     }
     fn receive_frame() -> bool {
+        trace!("receive_frame");
         true
     }
 
     fn update_phy() -> bool {
+        trace!("update_phy");
         false
     }
 }
