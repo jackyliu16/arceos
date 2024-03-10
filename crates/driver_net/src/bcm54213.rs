@@ -2,6 +2,7 @@ use crate::{NetBuf, NetBufPtr, NetDriverOps};
 use core::marker::PhantomData;
 pub use driver_bcm54213::{Bcm54213HalTraits, Bcm54213NicDevice, CNetDevice};
 use driver_common::{BaseDriverOps, DevResult};
+use log::debug;
 
 pub struct Bcm54213Nic<A>
 where
@@ -16,6 +17,7 @@ where
     A: Bcm54213HalTraits,
 {
     pub fn init(trait_impl: A) -> Self {
+        debug!("Bcm54213HalTraits init");
         let device = Bcm54213NicDevice::<A>::new(0); // TODO
         Self {
             device,

@@ -4,6 +4,7 @@
 #![allow(dead_code)]
 
 use super::prelude::*;
+use axhal::time::{busy_wait, current_time, Duration};
 use log::trace;
 
 use driver_net::bcm54213::Bcm54213HalTraits;
@@ -19,10 +20,14 @@ impl Bcm54213HalTraits for Bcm54213HalImpl {
     }
 
     fn mdelay(m_times: usize) {
-        todo!()
+        busy_wait(Duration::from_millis(m_times.try_into().unwrap()));
+    }
+
+    fn udelay(u_times: usize) {
+        busy_wait(Duration::from_nanos(u_times.try_into().unwrap()));
     }
 
     fn current_time() -> usize {
-        todo!()
+        current_time().as_millis() as usize
     }
 }
