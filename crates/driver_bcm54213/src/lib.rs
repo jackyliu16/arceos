@@ -13,7 +13,7 @@ mod macros;
 use alloc::string::String;
 use alloc::{fmt, format};
 use core::marker::PhantomData;
-use core::ptr::{read_volatile, write_volatile, NonNull};
+use core::ptr::{read, read_volatile, write_volatile, NonNull};
 use log::{debug, error, info, trace};
 use netspeed::LinkSpeed;
 
@@ -81,129 +81,235 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         assert!((reg & 0xFFFF) == 0); // EPHY version
 
         unsafe {
-            self.reset_umac();
-            self.umac_reset2();
-            self.init_umac();
-
-            debug!("B");
-
-            trace!("init_umac");
-            reg = read_volatile_wrapper!(genet_io!("umac", UMAC_CMD)); // make sure we reflect the value of CRC_CMD_FWD
-            debug!("B");
-            let m_crc_fwd_en = !!(reg & (CMD_CRC_FWD as u32));
-
-            debug!("B");
-            let ret = self.set_hw_addr();
+            self.gmac_eth_start();
         }
+
         info!("Reach the end of Bcm54213NicDevice Init");
         true
     }
 
-    unsafe fn reset_umac(&self) {
-        trace!("reset_umac");
-        write_volatile_wrapper!(0, SYS_RBUF_FLUSH_CTRL + GENET_SYS_OFF + ARM_BCM54213_BASE);
+    unsafe fn disable_dma(&self) {
+        trace!("disable_dma");
+        clrbits_32(TDMA_REG_BASE, DMA_EN);
+        trace!("A");
+        clrbits_32(RDMA_REG_BASE, DMA_EN);
+        trace!("A");
 
-        debug!("A");
+        trace!("A");
+        write_volatile_wrapper!(1, genet_io!("umac", UMAC_TX_FLUSH));
+        trace!("A");
+        A::udelay(10);
+        trace!("A");
+        write_volatile_wrapper!(0, genet_io!("umac", UMAC_TX_FLUSH));
+        trace!("A");
+    }
+
+    unsafe fn enable_dma(&self) {
+        trace!("enable_dma");
+        let reg = (1 << (DEFAULT_Q + DMA_RING_BUF_EN_SHIFT)) | DMA_EN;
+        write_volatile_wrapper!(reg as u32, TDMA_REG_BASE + DMA_CTRL);
+        setbits_32(RDMA_REG_BASE + DMA_CTRL, reg);
+    }
+
+    // TODO uncheck
+    unsafe fn rx_ring_init(&self) {
+        trace!("rx_ring_init");
+        write_volatile_wrapper!(
+            DMA_MAX_BURST_LENGTH as u32,
+            RDMA_REG_BASE + DMA_SCB_BURST_SIZE
+        );
+
+        write_volatile_wrapper!(0x0, RDMA_RING_REG_BASE + DMA_START_ADDR);
+        write_volatile_wrapper!(0x0, RDMA_READ_PTR);
+        write_volatile_wrapper!(0x0, RDMA_WRITE_PTR);
+        write_volatile_wrapper!(
+            (RX_DESCS * DMA_DESC_SIZE / 4 - 1) as u32,
+            RDMA_RING_REG_BASE + DMA_END_ADDR
+        );
+
+        let c_index = read_volatile_wrapper!(RDMA_PROD_INDEX);
+        write_volatile_wrapper!(c_index, RDMA_CONS_INDEX);
+        write_volatile_wrapper!(
+            ((RX_DESCS << DMA_RING_SIZE_SHIFT) | RX_BUF_LENGTH) as u32,
+            RDMA_RING_REG_BASE + DMA_RING_BUF_SIZE
+        );
+        write_volatile_wrapper!(DMA_FC_THRESH_VALUE as u32, RDMA_XON_XOFF_THRESH);
+        write_volatile_wrapper!(1 << DEFAULT_Q, RDMA_REG_BASE + DMA_RING_CFG);
+        // 	priv->c_index = readl(priv->mac_reg + RDMA_PROD_INDEX);
+        // 	writel(priv->c_index, priv->mac_reg + RDMA_CONS_INDEX);
+        // 	priv->rx_index = priv->c_index;
+        // 	priv->rx_index &= 0xFF;
+    }
+
+    unsafe fn rx_descs_init() {
+        trace!("rx_descs_init");
+        todo!()
+        //
+        // 	void *desc_base = priv->rx_desc_base;
+
+        // let len_stat = (RX_BUF_LENGTH << DMA_BUFLENGTH_SHIFT) | DMA_OWN;
+        // for i in 0..RX_DESCS {
+        //     write_volatile_wrapper!(rxbuff)
+        // writel(lower_32_bits((uintptr_t)&rxbuffs[i * RX_BUF_LENGTH]),
+        //        desc_base + i * DMA_DESC_SIZE + DMA_DESC_ADDRESS_LO);
+        // writel(upper_32_bits((uintptr_t)&rxbuffs[i * RX_BUF_LENGTH]),
+        //        desc_base + i * DMA_DESC_SIZE + DMA_DESC_ADDRESS_HI);
+        // writel(len_stat,
+        //        desc_base + i * DMA_DESC_SIZE + DMA_DESC_LENGTH_STATUS);
+        // }
+    }
+    // static void rx_descs_init(struct bcmgenet_eth_priv *priv)
+    // {
+    // 	char *rxbuffs = &priv->rxbuffer[0];
+    // 	u32 len_stat, i;
+    // 	void *desc_base = priv->rx_desc_base;
+    //
+    // 	len_stat = (RX_BUF_LENGTH << DMA_BUFLENGTH_SHIFT) | DMA_OWN;
+    //
+    // 	for (i = 0; i < RX_DESCS; i++) {
+    // 		writel(lower_32_bits((uintptr_t)&rxbuffs[i * RX_BUF_LENGTH]),
+    // 		       desc_base + i * DMA_DESC_SIZE + DMA_DESC_ADDRESS_LO);
+    // 		writel(upper_32_bits((uintptr_t)&rxbuffs[i * RX_BUF_LENGTH]),
+    // 		       desc_base + i * DMA_DESC_SIZE + DMA_DESC_ADDRESS_HI);
+    // 		writel(len_stat,
+    // 		       desc_base + i * DMA_DESC_SIZE + DMA_DESC_LENGTH_STATUS);
+    // 	}
+    // }
+    // TODO uncheck
+    unsafe fn tx_ring_init(&self) {
+        trace!("tx_ring_init");
+        write_volatile_wrapper!(
+            DMA_MAX_BURST_LENGTH as u32,
+            TDMA_REG_BASE + DMA_SCB_BURST_SIZE
+        );
+
+        write_volatile_wrapper!(0, TDMA_RING_REG_BASE + DMA_START_ADDR);
+        write_volatile_wrapper!(0, TDMA_READ_PTR);
+        write_volatile_wrapper!(0, TDMA_WRITE_PTR);
+        write_volatile_wrapper!(
+            (TX_DESCS * DMA_DESC_SIZE / 4 - 1) as u32,
+            TDMA_RING_REG_BASE + DMA_END_ADDR
+        );
+        // 	priv->tx_index = readl(priv->mac_reg + TDMA_CONS_INDEX);
+        // 	writel(priv->tx_index, priv->mac_reg + TDMA_PROD_INDEX);
+        // 	priv->tx_index &= 0xFF;
+        let tx_index = read_volatile_wrapper!(TDMA_CONS_INDEX);
+        write_volatile_wrapper!(tx_index, TDMA_PROD_INDEX);
+        write_volatile_wrapper!(0x1, TDMA_RING_REG_BASE + DMA_MBUF_DONE_THRESH);
+        write_volatile_wrapper!(0x0, TDMA_FLOW_PERIOD);
+        write_volatile_wrapper!(
+            ((TX_DESCS << DMA_RING_SIZE_SHIFT) | RX_BUF_LENGTH) as u32,
+            TDMA_RING_REG_BASE + DMA_RING_BUF_SIZE
+        );
+        write_volatile_wrapper!(1 << DEFAULT_Q, TDMA_REG_BASE + DMA_RING_CFG);
+    }
+
+    // TODO uncheck
+    unsafe fn umac_reset(&self) {
+        trace!("umac_reset");
+        let mut reg = read_volatile_wrapper!(genet_io!("sys", SYS_RBUF_FLUSH_CTRL));
+        reg |= (1 << 1);
+        write_volatile_wrapper!(reg, genet_io!("sys", SYS_RBUF_FLUSH_CTRL));
+
         A::udelay(10);
 
-        // disable MAC while updating its registers
-        debug!("A");
-        write_volatile_wrapper!(0, UMAC_CMD + GENET_UMAC_OFF + ARM_BCM54213_BASE);
-        // issue soft reset with (rg)mii loopback to ensure a stable rxclk
-        debug!("A");
+        reg &= !(1 << 1);
+        write_volatile_wrapper!(reg, genet_io!("sys", SYS_RBUF_FLUSH_CTRL));
+        A::udelay(10);
+        write_volatile_wrapper!(0, genet_io!("umac", UMAC_CMD));
         write_volatile_wrapper!(
-            CMD_SW_RESET | CMD_LCL_LOOP_EN,
-            UMAC_CMD + GENET_UMAC_OFF + ARM_BCM54213_BASE
+            (CMD_SW_RESET | CMD_LCL_LOOP_EN) as u32,
+            genet_io!("umac", UMAC_CMD)
         );
         A::udelay(2);
-        debug!("A");
-        write_volatile_wrapper!(0, UMAC_CMD + GENET_UMAC_OFF + ARM_BCM54213_BASE);
-        debug!("A");
-    }
+        write_volatile_wrapper!(0, genet_io!("umac", UMAC_CMD));
 
-    unsafe fn umac_reset2(&self) {
-        trace!("umac_reset2");
-        let mut reg: u32 = read_volatile_wrapper!(genet_io!("sys", SYS_RBUF_FLUSH_CTRL));
-        reg |= (1 << 1);
-        write_volatile_wrapper!(0, genet_io!("sys", SYS_RBUF_FLUSH_CTRL));
-        A::udelay(10);
-        reg &= !(1 << 1);
-        write_volatile_wrapper!(reg as usize, genet_io!("sys", SYS_RBUF_FLUSH_CTRL));
-    }
-
-    unsafe fn init_umac(&self) {
-        trace!("init_umac");
-        self.reset_umac();
-        trace!("C");
-        // clear tx/rx counter
+        /* clear tx/rx counter */
         write_volatile_wrapper!(
-            MIB_RESET_RX | MIB_RESET_TX | MIB_RESET_RUNT,
+            (MIB_RESET_RX | MIB_RESET_TX | MIB_RESET_RUNT) as u32,
             genet_io!("umac", UMAC_MIB_CTRL)
         );
-        trace!("C");
         write_volatile_wrapper!(0, genet_io!("umac", UMAC_MIB_CTRL));
-        trace!("C");
+        // let reg = read_volatile_wrapper!(ARM_BCM54213_BASE + GENET_UMAC_OFF + UMAC_MAX_FRAME_LEN);
+        // trace!("reg :{reg:0>32b}");
+        // write_volatile(
+        //     (ARM_BCM54213_BASE + GENET_UMAC_OFF + UMAC_MAX_FRAME_LEN) as *mut u32,
+        //     ENET_MAX_MTU_SIZE as u32,
+        // );
+        // trace!("AAA");
         write_volatile_wrapper!(
-            ENET_MAX_MTU_SIZE,
-            (ARM_BCM54213_BASE + GENET_UMAC_OFF + UMAC_MAX_FRAME_LEN) as *mut u32
+            ENET_MAX_MTU_SIZE as u32,
+            ARM_BCM54213_BASE + GENET_UMAC_OFF + UMAC_MAX_FRAME_LEN
         );
-        // init rx registers, enable ip header optimization
-        trace!("C");
-        let mut reg: usize = read_volatile_wrapper!(genet_io!("rbuf", RBUF_CTRL)) as usize;
-        reg |= RBUF_ALIGN_2B;
-        trace!("C");
-        // write_volatile_wrapper!(reg, genet_io!("rbuf", RBUF_CTRL));
-        // write_volatile_wrapper!(1, genet_io!("rbuf", RBUF_TBUF_SIZE_CTRL));
 
-        trace!("C");
-        // self.intr_disable();
-        // intr_disable(); // TODO CHECK
-        // Enable MDIO interrupts on GENET v3+
-        // NOTE: MDIO interrupts do not work
-        //intrl2_0_writel(UMAC_IRQ_MDIO_DONE | UMAC_IRQ_MDIO_ERROR, INTRL2_CPU_MASK_CLEAR);
+        /* init rx registers, enable ip header optimization */
+        let mut reg = read_volatile_wrapper!(genet_io!("rbuf", RBUF_CTRL));
+        reg |= (RBUF_ALIGN_2B as u32);
+        write_volatile_wrapper!(reg, genet_io!("rbuf", RBUF_CTRL));
+
+        // let reg = read_volatile_wrapper!(ARM_BCM54213_BASE + GENET_UMAC_OFF + RBUF_TBUF_SIZE_CTRL);
+        // trace!("reg :{reg:0>32b}");
+
+        write_volatile_wrapper!(1, genet_io!("rbuf", RBUF_TBUF_SIZE_CTRL));
     }
 
-    unsafe fn intr_disable(&self) {
-        trace!("intr_disable");
-        // Mask all interrupts TODO maybe incorrect with docs
-        write_volatile_wrapper!(0xFFFF_FFFF, genet_io!("intrl2_0", INTRL2_CPU_MASK_SET));
-        write_volatile_wrapper!(0xFFFF_FFFF, genet_io!("intrl2_0", INTRL2_CPU_CLEAR));
-        write_volatile_wrapper!(0xFFFF_FFFF, genet_io!("intrl2_1", INTRL2_CPU_MASK_SET));
-        write_volatile_wrapper!(0xFFFF_FFFF, genet_io!("intrl2_1", INTRL2_CPU_CLEAR));
+    // TODO unfinish
+    unsafe fn gmac_write_hwaddr(&self) {
+        trace!("gmac_write_hwaddr");
+        // NOTE: automatically set MAC address
+        let reg = 0;
+        write_volatile_wrapper!(reg, genet_io!("umac", UMAC_MAC0)); // High
+        write_volatile_wrapper!(reg, genet_io!("umac", UMAC_MAC1)); // Low
     }
+    // --------------------------------------------------
+    // GMAC ETH
+    // --------------------------------------------------
 
-    // ref on raspiberry:linux
-    unsafe fn set_hw_addr(&self) {
-        // write_volatile_wrapper!(xk)
-        // TODO let's beg it could work
-        // TODO MAC Address could be get from message box or somthing else.
-        let mac0 = read_volatile_wrapper!(genet_io!("umac", UMAC_MAC0));
-        let mac1 = read_volatile_wrapper!(genet_io!("umac", UMAC_MAC1));
+    // TODO UNFINISH
+    // TOOD UNCHECK
+    unsafe fn gmac_eth_start(&self) {
+        trace!("gmac_eth_start");
+        let tx_desc_base = read_volatile_wrapper!(ARM_BCM54213_BASE + GENET_TX_OFF);
+        let rx_desc_base = read_volatile_wrapper!(ARM_BCM54213_BASE + GENET_RX_OFF);
 
-        trace!("mac0: {mac0}");
-        trace!("mac1: {mac1}");
+        trace!("1");
+        self.umac_reset();
+        trace!("2");
+        self.gmac_write_hwaddr();
+        /* Disable RX/TX DMA and flush TX queues */
+        trace!("3");
+        self.disable_dma();
+        trace!("4");
+        self.rx_ring_init();
+        // 	rx_descs_init(priv);
+        trace!("5");
+        self.tx_ring_init();
+        trace!("6");
+        /* Enable RX/TX DMA */
+        self.enable_dma();
+        trace!("7");
+        /* read PHY properties over the wire from generic PHY set-up */
+        // ret = phy_startup(priv->phydev);
+        // 	if (ret) {
+        // 		printf("bcmgenet: PHY startup failed: %d\n", ret);
+        // 		return ret;
+        // 	}
+        // 	/* Update MAC registers based on PHY property */
+        // 	ret = bcmgenet_adjust_link(priv);
+        // 	if (ret) {
+        // 		printf("bcmgenet: adjust PHY link failed: %d\n", ret);
+        // 		return ret;
+        // 	}
+        //
+        /* Enable Rx/Tx */
+        setbits_32(
+            ARM_BCM54213_BASE + GENET_UMAC_OFF + UMAC_CMD,
+            CMD_TX_EN | CMD_RX_EN,
+        );
+        trace!("8");
     }
 }
-// int CBcm54213Device::set_hw_addr(void)
-// {
-// 	m_MACAddress.Set (MACAddress.Address);
-//
-// 	CString MACString;
-// 	m_MACAddress.Format (&MACString);
-// 	CLogger::Get ()->Write (FromBcm54213, LogDebug, "MAC address is %s",
-// 				(const char *) MACString);
-//
-// 	umac_writel(  (MACAddress.Address[0] << 24)
-// 		    | (MACAddress.Address[1] << 16)
-// 		    | (MACAddress.Address[2] << 8)
-// 		    |  MACAddress.Address[3], UMAC_MAC0);
-// 	umac_writel((  MACAddress.Address[4] << 8)
-// 		     | MACAddress.Address[5], UMAC_MAC1);
-//
-// 	return 0;
-// }
-//
-// base on circle
+
 pub trait CNetDevice {
     fn get_mac_address(&self) -> [u8; 6];
     fn get_link_speed(&self) -> String;
@@ -263,4 +369,23 @@ impl<A: Bcm54213HalTraits> CNetDevice for Bcm54213NicDevice<A> {
         trace!("update_phy");
         false
     }
+}
+
+unsafe fn clrbits_32(addr: usize, clear: usize) {
+    let mut reg = read_volatile(addr as *const u32);
+    reg & (!(clear) as u32);
+    write_volatile(addr as *mut u32, reg);
+}
+
+unsafe fn setbits_32(addr: usize, set: usize) {
+    let mut reg = read_volatile(addr as *const u32);
+    reg |= set as u32;
+    write_volatile(addr as *mut u32, reg);
+}
+
+unsafe fn clrsetbits_32(addr: usize, clear: usize, set: usize) {
+    let mut reg = read_volatile(addr as *const u32);
+    reg & (!(clear) as u32);
+    reg |= set as u32;
+    write_volatile(addr as *mut u32, reg);
 }

@@ -428,3 +428,139 @@ pub const DMA_DESC_ALLOC_MASK: usize = 0x00FF;
 pub const DMA_ARBITER_RR: usize = 0x00;
 pub const DMA_ARBITER_WRR: usize = 0x01;
 pub const DMA_ARBITER_SP: usize = 0x02;
+
+// --------------------------------------------------
+// Ref on u-boot
+// --------------------------------------------------
+
+// pub const SYS_REV_CTRL: usize = 0x00;
+//
+// pub const SYS_PORT_CTRL: usize = 0x04;
+// pub const PORT_MODE_EXT_GPHY: usize = 3;
+//
+// pub const GENET_SYS_OFF: usize = 0x0000;
+// pub const SYS_RBUF_FLUSH_CTRL: usize = GENET_SYS_OFF + 0x08;
+// pub const SYS_TBUF_FLUSH_CTRL: usize = GENET_SYS_OFF + 0x0c;
+//
+// pub const GENET_EXT_OFF: usize = 0x0080;
+// pub const EXT_RGMII_OOB_CTRL: usize = GENET_EXT_OFF + 0x0c;
+// pub const RGMII_LINK: usize = 1 << 4;
+// pub const OOB_DISABLE: usize = 1 << 5;
+// pub const RGMII_MODE_EN: usize = 1 << 6;
+// pub const ID_MODE_DIS: usize = 1 << 16;
+//
+// pub const GENET_RBUF_OFF: usize = 0x0300;
+// pub const RBUF_TBUF_SIZE_CTRL: usize = GENET_RBUF_OFF + 0xb4;
+// pub const RBUF_CTRL: usize = GENET_RBUF_OFF;
+// pub const RBUF_ALIGN_2B: usize = 1 << 1;
+//
+// pub const GENET_UMAC_OFF: usize = 0x0800;
+// pub const UMAC_MIB_CTRL: usize = GENET_UMAC_OFF + 0x580;
+// pub const UMAC_MAX_FRAME_LEN: usize = GENET_UMAC_OFF + 0x014;
+// pub const UMAC_MAC0: usize = GENET_UMAC_OFF + 0x00c;
+// pub const UMAC_MAC1: usize = GENET_UMAC_OFF + 0x010;
+// pub const UMAC_CMD: usize = GENET_UMAC_OFF + 0x008;
+// pub const MDIO_CMD: usize = GENET_UMAC_OFF + 0x614;
+// pub const UMAC_TX_FLUSH: usize = GENET_UMAC_OFF + 0x334;
+// pub const MDIO_START_BUSY: usize = 1 << 29;
+// pub const MDIO_READ_FAIL: usize = 1 << 28;
+// pub const MDIO_RD: usize = 2 << 26;
+// pub const MDIO_WR: usize = 1 << 26;
+// pub const MDIO_PMD_SHIFT: usize = 21;
+// pub const MDIO_PMD_MASK: usize = 0x1f;
+// pub const MDIO_REG_SHIFT: usize = 16;
+// pub const MDIO_REG_MASK: usize = 0x1f;
+//
+// pub const CMD_TX_EN: usize = 1 << 0;
+// pub const CMD_RX_EN: usize = 1 << 1;
+// pub const UMAC_SPEED_10: usize = 0;
+// pub const UMAC_SPEED_100: usize = 1;
+// pub const UMAC_SPEED_1000: usize = 2;
+// pub const UMAC_SPEED_2500: usize = 3;
+// pub const CMD_SPEED_SHIFT: usize = 2;
+// pub const CMD_SPEED_MASK: usize = 3;
+// pub const CMD_SW_RESET: usize = 1 << 13;
+// pub const CMD_LCL_LOOP_EN: usize = 1 << 15;
+//
+// pub const MIB_RESET_RX: usize = 1 << 0;
+// pub const MIB_RESET_RUNT: usize = 1 << 1;
+// pub const MIB_RESET_TX: usize = 1 << 2;
+
+pub const TOTAL_DESCS: usize = 256;
+pub const RX_DESCS: usize = TOTAL_DESCS;
+pub const TX_DESCS: usize = TOTAL_DESCS;
+
+pub const DEFAULT_Q: usize = 0x10;
+
+pub const ENET_BRCM_TAG_LENGTH: usize = 6;
+pub const ENET_PAD: usize = 8;
+// pub const ENET_MAX_MTU_SIZE: usize =
+//     ETH_DATA_LEN + ETH_HLEN + VLAN_HLEN + ENET_BRCM_TAG_LENGTH + ETH_FCS_LEN + ENET_PAD;
+//
+// pub const DMA_EN: usize = 1 << 0;
+// pub const DMA_RING_BUF_EN_SHIFT: usize = 0x01;
+// pub const DMA_RING_BUF_EN_MASK: usize = 0xffff;
+// pub const DMA_BUFLENGTH_MASK: usize = 0x0fff;
+// pub const DMA_BUFLENGTH_SHIFT: usize = 16;
+// pub const DMA_RING_SIZE_SHIFT: usize = 16;
+// pub const DMA_OWN: usize = 0x8000;
+// pub const DMA_EOP: usize = 0x4000;
+// pub const DMA_SOP: usize = 0x2000;
+// pub const DMA_WRAP: usize = 0x1000;
+// pub const DMA_MAX_BURST_LENGTH: usize = 0x8;
+//
+// pub const DMA_TX_UNDERRUN: usize = 0x0200;
+// pub const DMA_TX_APPEND_CRC: usize = 0x0040;
+// pub const DMA_TX_OW_CRC: usize = 0x0020;
+// pub const DMA_TX_DO_CSUM: usize = 0x0010;
+// pub const DMA_TX_QTAG_SHIFT: usize = 7;
+//
+// pub const DMA_RING_SIZE: usize = 0x40;
+// pub const DMA_RINGS_SIZE: usize = DMA_RING_SIZE * (DEFAULT_Q + 1);
+//
+// pub const DMA_DESC_LENGTH_STATUS: usize = 0x00;
+// pub const DMA_DESC_ADDRESS_LO: usize = 0x04;
+// pub const DMA_DESC_ADDRESS_HI: usize = 0x08;
+pub const DMA_DESC_SIZE: usize = 12;
+
+pub const GENET_RX_OFF: usize = 0x2000;
+pub const GENET_RDMA_REG_OFF: usize = GENET_RX_OFF + TOTAL_DESCS * DMA_DESC_SIZE;
+pub const GENET_TX_OFF: usize = 0x4000;
+pub const GENET_TDMA_REG_OFF: usize = GENET_TX_OFF + TOTAL_DESCS * DMA_DESC_SIZE;
+
+// pub const DMA_FC_THRESH_HI: usize = RX_DESCS >> 4;
+// pub const DMA_FC_THRESH_LO: usize = 5;
+pub const DMA_FC_THRESH_VALUE: usize = (DMA_FC_THRESH_LO << 16) | DMA_FC_THRESH_HI;
+
+// pub const DMA_XOFF_THRESHOLD_SHIFT: usize = 16;
+
+pub const TDMA_RING_REG_BASE: usize = GENET_TDMA_REG_OFF + DEFAULT_Q * DMA_RING_SIZE;
+pub const TDMA_READ_PTR: usize = TDMA_RING_REG_BASE + 0x00;
+pub const TDMA_CONS_INDEX: usize = TDMA_RING_REG_BASE + 0x08;
+pub const TDMA_PROD_INDEX: usize = TDMA_RING_REG_BASE + 0x0c;
+pub const DMA_RING_BUF_SIZE: usize = 0x10;
+pub const DMA_START_ADDR: usize = 0x14;
+pub const DMA_END_ADDR: usize = 0x1c;
+pub const DMA_MBUF_DONE_THRESH: usize = 0x24;
+pub const TDMA_FLOW_PERIOD: usize = TDMA_RING_REG_BASE + 0x28;
+pub const TDMA_WRITE_PTR: usize = TDMA_RING_REG_BASE + 0x2c;
+
+pub const RDMA_RING_REG_BASE: usize = GENET_RDMA_REG_OFF + DEFAULT_Q * DMA_RING_SIZE;
+pub const RDMA_WRITE_PTR: usize = RDMA_RING_REG_BASE + 0x00;
+pub const RDMA_PROD_INDEX: usize = RDMA_RING_REG_BASE + 0x08;
+pub const RDMA_CONS_INDEX: usize = RDMA_RING_REG_BASE + 0x0c;
+pub const RDMA_XON_XOFF_THRESH: usize = RDMA_RING_REG_BASE + 0x28;
+pub const RDMA_READ_PTR: usize = RDMA_RING_REG_BASE + 0x2c;
+
+/* DMA rings size */
+pub const DMA_RINGS_SIZE: usize = (DMA_RING_SIZE * (DEFAULT_Q + 1));
+
+pub const TDMA_REG_BASE: usize = GENET_TDMA_REG_OFF + DMA_RINGS_SIZE;
+pub const RDMA_REG_BASE: usize = GENET_RDMA_REG_OFF + DMA_RINGS_SIZE;
+pub const DMA_RING_CFG: usize = 0x00;
+pub const DMA_CTRL: usize = 0x04;
+pub const DMA_SCB_BURST_SIZE: usize = 0x0c;
+
+// pub const RX_BUF_LENGTH: usize = 2048;
+pub const RX_TOTAL_BUFSIZE: usize = RX_BUF_LENGTH * RX_DESCS;
+pub const RX_BUF_OFFSET: usize = 2;

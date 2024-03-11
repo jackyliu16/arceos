@@ -1,7 +1,7 @@
 macro_rules! write_volatile_wrapper {
     // NOTE: Inverted for easy inspection
     ($val:expr, $reg:expr) => {
-        write_volatile((($reg) as *mut usize), $val);
+        write_volatile((($reg) as *mut u32), $val);
     };
 }
 
