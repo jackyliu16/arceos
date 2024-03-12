@@ -88,27 +88,47 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         true
     }
 
+    // TODO UNFINISH
+    // TODO UNCHECK
     unsafe fn disable_dma(&self) {
         trace!("disable_dma");
-        clrbits_32(TDMA_REG_BASE, DMA_EN);
-        trace!("A");
-        clrbits_32(RDMA_REG_BASE, DMA_EN);
-        trace!("A");
 
-        trace!("A");
-        write_volatile_wrapper!(1, genet_io!("umac", UMAC_TX_FLUSH));
-        trace!("A");
+        // clrbits_32(priv->mac_reg + TDMA_REG_BASE + DMA_CTRL, DMA_EN);
+        // clrbits_32(priv->mac_reg + RDMA_REG_BASE + DMA_CTRL, DMA_EN);
+        //
+        // writel(1, priv->mac_reg + UMAC_TX_FLUSH);
+        // udelay(10);
+        // writel(0, priv->mac_reg + UMAC_TX_FLUSH);
+
+        let reg = read_volatile_wrapper!(ARM_BCM54213_BASE + TDMA_REG_BASE + DMA_CTRL);
+        reg & !(1 << DMA_EN);
+        write_volatile_wrapper!(reg, ARM_BCM54213_BASE + TDMA_REG_BASE + DMA_CTRL);
+
+        let reg = read_volatile_wrapper!(ARM_BCM54213_BASE + RDMA_REG_BASE + DMA_CTRL);
+        reg & !(1 << DMA_EN);
+        write_volatile_wrapper!(reg, ARM_BCM54213_BASE + RDMA_REG_BASE + DMA_CTRL);
+
+        write_volatile_wrapper!(1, ARM_BCM54213_BASE + GENET_UMAC_OFF + UMAC_TX_FLUSH);
         A::udelay(10);
-        trace!("A");
-        write_volatile_wrapper!(0, genet_io!("umac", UMAC_TX_FLUSH));
-        trace!("A");
+        write_volatile_wrapper!(0, ARM_BCM54213_BASE + GENET_UMAC_OFF + UMAC_TX_FLUSH);
     }
 
+    // TODO UNCHEKC
     unsafe fn enable_dma(&self) {
         trace!("enable_dma");
-        let reg = (1 << (DEFAULT_Q + DMA_RING_BUF_EN_SHIFT)) | DMA_EN;
-        write_volatile_wrapper!(reg as u32, TDMA_REG_BASE + DMA_CTRL);
-        setbits_32(RDMA_REG_BASE + DMA_CTRL, reg);
+        // u32 dma_ctrl = (1 << (DEFAULT_Q + DMA_RING_BUF_EN_SHIFT)) | DMA_EN;
+        // writel(dma_ctrl, priv->mac_reg + TDMA_REG_BASE + DMA_CTRL);
+        // setbits_32(priv->mac_reg + RDMA_REG_BASE + DMA_CTRL, dma_ctrl);
+
+        let dma_ctrl = (1 << (DEFAULT_Q + DMA_RING_BUF_EN_SHIFT)) | DMA_EN;
+        write_volatile_wrapper!(
+            dma_ctrl as u32,
+            ARM_BCM54213_BASE + TDMA_REG_BASE + DMA_CTRL
+        );
+
+        let mut reg = read_volatile_wrapper!(ARM_BCM54213_BASE + RDMA_REG_BASE + DMA_CTRL);
+        reg |= (dma_ctrl as u32);
+        write_volatile_wrapper!(reg, ARM_BCM54213_BASE + RDMA_REG_BASE + DMA_CTRL);
     }
 
     // TODO uncheck
@@ -116,25 +136,34 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         trace!("rx_ring_init");
         write_volatile_wrapper!(
             DMA_MAX_BURST_LENGTH as u32,
-            RDMA_REG_BASE + DMA_SCB_BURST_SIZE
+            ARM_BCM54213_BASE + RDMA_REG_BASE + DMA_SCB_BURST_SIZE
         );
+        trace!("rx_ring_init");
 
-        write_volatile_wrapper!(0x0, RDMA_RING_REG_BASE + DMA_START_ADDR);
-        write_volatile_wrapper!(0x0, RDMA_READ_PTR);
-        write_volatile_wrapper!(0x0, RDMA_WRITE_PTR);
+        write_volatile_wrapper!(0x0, ARM_BCM54213_BASE + RDMA_RING_REG_BASE + DMA_START_ADDR);
+        write_volatile_wrapper!(0x0, ARM_BCM54213_BASE + RDMA_READ_PTR);
+        write_volatile_wrapper!(0x0, ARM_BCM54213_BASE + RDMA_WRITE_PTR);
         write_volatile_wrapper!(
             (RX_DESCS * DMA_DESC_SIZE / 4 - 1) as u32,
-            RDMA_RING_REG_BASE + DMA_END_ADDR
+            ARM_BCM54213_BASE + RDMA_RING_REG_BASE + DMA_END_ADDR
         );
+        trace!("rx_ring_init");
 
-        let c_index = read_volatile_wrapper!(RDMA_PROD_INDEX);
-        write_volatile_wrapper!(c_index, RDMA_CONS_INDEX);
+        let c_index = read_volatile_wrapper!(ARM_BCM54213_BASE + RDMA_PROD_INDEX);
+        write_volatile_wrapper!(c_index, ARM_BCM54213_BASE + RDMA_CONS_INDEX);
         write_volatile_wrapper!(
             ((RX_DESCS << DMA_RING_SIZE_SHIFT) | RX_BUF_LENGTH) as u32,
-            RDMA_RING_REG_BASE + DMA_RING_BUF_SIZE
+            ARM_BCM54213_BASE + RDMA_RING_REG_BASE + DMA_RING_BUF_SIZE
         );
-        write_volatile_wrapper!(DMA_FC_THRESH_VALUE as u32, RDMA_XON_XOFF_THRESH);
-        write_volatile_wrapper!(1 << DEFAULT_Q, RDMA_REG_BASE + DMA_RING_CFG);
+        write_volatile_wrapper!(
+            DMA_FC_THRESH_VALUE as u32,
+            ARM_BCM54213_BASE + RDMA_XON_XOFF_THRESH
+        );
+        write_volatile_wrapper!(
+            1 << DEFAULT_Q,
+            ARM_BCM54213_BASE + RDMA_REG_BASE + DMA_RING_CFG
+        );
+        trace!("rx_ring_init");
         // 	priv->c_index = readl(priv->mac_reg + RDMA_PROD_INDEX);
         // 	writel(priv->c_index, priv->mac_reg + RDMA_CONS_INDEX);
         // 	priv->rx_index = priv->c_index;
@@ -144,19 +173,6 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
     unsafe fn rx_descs_init() {
         trace!("rx_descs_init");
         todo!()
-        //
-        // 	void *desc_base = priv->rx_desc_base;
-
-        // let len_stat = (RX_BUF_LENGTH << DMA_BUFLENGTH_SHIFT) | DMA_OWN;
-        // for i in 0..RX_DESCS {
-        //     write_volatile_wrapper!(rxbuff)
-        // writel(lower_32_bits((uintptr_t)&rxbuffs[i * RX_BUF_LENGTH]),
-        //        desc_base + i * DMA_DESC_SIZE + DMA_DESC_ADDRESS_LO);
-        // writel(upper_32_bits((uintptr_t)&rxbuffs[i * RX_BUF_LENGTH]),
-        //        desc_base + i * DMA_DESC_SIZE + DMA_DESC_ADDRESS_HI);
-        // writel(len_stat,
-        //        desc_base + i * DMA_DESC_SIZE + DMA_DESC_LENGTH_STATUS);
-        // }
     }
     // static void rx_descs_init(struct bcmgenet_eth_priv *priv)
     // {
@@ -180,28 +196,34 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         trace!("tx_ring_init");
         write_volatile_wrapper!(
             DMA_MAX_BURST_LENGTH as u32,
-            TDMA_REG_BASE + DMA_SCB_BURST_SIZE
+            ARM_BCM54213_BASE + TDMA_REG_BASE + DMA_SCB_BURST_SIZE
         );
 
-        write_volatile_wrapper!(0, TDMA_RING_REG_BASE + DMA_START_ADDR);
-        write_volatile_wrapper!(0, TDMA_READ_PTR);
-        write_volatile_wrapper!(0, TDMA_WRITE_PTR);
+        write_volatile_wrapper!(0, ARM_BCM54213_BASE + TDMA_RING_REG_BASE + DMA_START_ADDR);
+        write_volatile_wrapper!(0, ARM_BCM54213_BASE + TDMA_READ_PTR);
+        write_volatile_wrapper!(0, ARM_BCM54213_BASE + TDMA_WRITE_PTR);
         write_volatile_wrapper!(
             (TX_DESCS * DMA_DESC_SIZE / 4 - 1) as u32,
-            TDMA_RING_REG_BASE + DMA_END_ADDR
+            ARM_BCM54213_BASE + TDMA_RING_REG_BASE + DMA_END_ADDR
         );
         // 	priv->tx_index = readl(priv->mac_reg + TDMA_CONS_INDEX);
         // 	writel(priv->tx_index, priv->mac_reg + TDMA_PROD_INDEX);
         // 	priv->tx_index &= 0xFF;
-        let tx_index = read_volatile_wrapper!(TDMA_CONS_INDEX);
-        write_volatile_wrapper!(tx_index, TDMA_PROD_INDEX);
-        write_volatile_wrapper!(0x1, TDMA_RING_REG_BASE + DMA_MBUF_DONE_THRESH);
-        write_volatile_wrapper!(0x0, TDMA_FLOW_PERIOD);
+        let tx_index = read_volatile_wrapper!(ARM_BCM54213_BASE + TDMA_CONS_INDEX);
+        write_volatile_wrapper!(tx_index, ARM_BCM54213_BASE + TDMA_PROD_INDEX);
+        write_volatile_wrapper!(
+            0x1,
+            ARM_BCM54213_BASE + TDMA_RING_REG_BASE + DMA_MBUF_DONE_THRESH
+        );
+        write_volatile_wrapper!(0x0, ARM_BCM54213_BASE + TDMA_FLOW_PERIOD);
         write_volatile_wrapper!(
             ((TX_DESCS << DMA_RING_SIZE_SHIFT) | RX_BUF_LENGTH) as u32,
-            TDMA_RING_REG_BASE + DMA_RING_BUF_SIZE
+            ARM_BCM54213_BASE + TDMA_RING_REG_BASE + DMA_RING_BUF_SIZE
         );
-        write_volatile_wrapper!(1 << DEFAULT_Q, TDMA_REG_BASE + DMA_RING_CFG);
+        write_volatile_wrapper!(
+            1 << DEFAULT_Q,
+            ARM_BCM54213_BASE + TDMA_REG_BASE + DMA_RING_CFG
+        );
     }
 
     // TODO uncheck
