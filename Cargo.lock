@@ -930,6 +930,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cvitek_nic_httpserver_test"
+version = "0.1.0"
+dependencies = [
+ "axfs",
+ "axfs_ramfs",
+ "axfs_vfs",
+ "axstd",
+ "crate_interface",
+ "libax",
+]
+
+[[package]]
 name = "defmt"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

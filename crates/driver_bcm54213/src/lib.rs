@@ -14,7 +14,7 @@ use alloc::string::String;
 use alloc::{fmt, format};
 use core::marker::PhantomData;
 use core::ptr::{read, read_volatile, write_volatile, NonNull};
-use log::{debug, error, info, trace};
+use log::{debug, error, info, trace, warn};
 use netspeed::LinkSpeed;
 
 pub trait Bcm54213HalTraits {
@@ -38,6 +38,7 @@ pub struct Bcm54213NicDevice<A: Bcm54213HalTraits> {
     iobase_pa: usize,
     iobase_va: usize,
     link_speed: LinkSpeed,
+    mac_addr: [u8; 6],
     phantom: PhantomData<A>,
 }
 
@@ -49,6 +50,7 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
             iobase_pa,
             iobase_va,
             link_speed: LinkSpeed::NetDeviceSpeedUnknown, // TODO
+            mac_addr: [0x0, 0x0, 0x0, 0x0, 0x0, 0x0],
             phantom: PhantomData,
         };
         nic.init();
@@ -88,7 +90,6 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         true
     }
 
-    // TODO UNFINISH
     // TODO UNCHECK
     unsafe fn disable_dma(&self) {
         trace!("disable_dma");
@@ -113,7 +114,7 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         write_volatile_wrapper!(0, ARM_BCM54213_BASE + GENET_UMAC_OFF + UMAC_TX_FLUSH);
     }
 
-    // TODO UNCHEKC
+    // TODO UNCHECK
     unsafe fn enable_dma(&self) {
         trace!("enable_dma");
         // u32 dma_ctrl = (1 << (DEFAULT_Q + DMA_RING_BUF_EN_SHIFT)) | DMA_EN;
@@ -170,9 +171,13 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         // 	priv->rx_index &= 0xFF;
     }
 
+    // TODO UNCHECK
     unsafe fn rx_descs_init() {
         trace!("rx_descs_init");
-        todo!()
+
+        let len_stat = (RX_BUF_LENGTH << DMA_BUFLENGTH_SHIFT) | DMA_OWN;
+
+        for i in 0..RX_DESCS {}
     }
     // static void rx_descs_init(struct bcmgenet_eth_priv *priv)
     // {
@@ -191,7 +196,7 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
     // 		       desc_base + i * DMA_DESC_SIZE + DMA_DESC_LENGTH_STATUS);
     // 	}
     // }
-    // TODO uncheck
+    // TODO UNCHECK
     unsafe fn tx_ring_init(&self) {
         trace!("tx_ring_init");
         write_volatile_wrapper!(
@@ -226,7 +231,7 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         );
     }
 
-    // TODO uncheck
+    // TODO UNCHECK
     unsafe fn umac_reset(&self) {
         trace!("umac_reset");
         let mut reg = read_volatile_wrapper!(genet_io!("sys", SYS_RBUF_FLUSH_CTRL));
@@ -275,7 +280,7 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         write_volatile_wrapper!(1, genet_io!("rbuf", RBUF_TBUF_SIZE_CTRL));
     }
 
-    // TODO unfinish
+    // TODO uncheck
     unsafe fn gmac_write_hwaddr(&self) {
         trace!("gmac_write_hwaddr");
         // NOTE: automatically set MAC address
@@ -283,6 +288,31 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         write_volatile_wrapper!(reg, genet_io!("umac", UMAC_MAC0)); // High
         write_volatile_wrapper!(reg, genet_io!("umac", UMAC_MAC1)); // Low
     }
+
+    unsafe fn hfd_init() {
+        // this has no function, but to suppress warnings from clang compiler >>>
+        // hfb_reg_readl(HFB_CTRL);
+        // hfb_readl(0);
+        // <<<
+        write_volatile_wrapper!(0, genet_io!("hfb", HFB_CTRL));
+        write_volatile_wrapper!(0, genet_io!("hfb", HFB_FLT_ENABLE_V3PLUS));
+        write_volatile_wrapper!(0, genet_io!("hfb", HFB_FLT_ENABLE_V3PLUS + 4));
+
+        for i in 0x70..0x8c { // DMA_INDEX2RING_0..DMA_INDEX2RING_7
+             // TODO UNFINISH
+             // The code write here should use rdma buffer
+             // 	for (i = DMA_INDEX2RING_0; i <= DMA_INDEX2RING_7; i++)
+             // 		rdma_writel(0, i);
+             //
+             // 	for (i = 0; i < (HFB_FILTER_CNT / 4); i++)
+             // 		hfb_reg_writel(0, HFB_FLT_LEN_V3PLUS + i * sizeof(u32));
+             //
+             // 	for (i = 0; i < HFB_FILTER_CNT * HFB_FILTER_SIZE; i++)
+             // 		hfb_writel(0, i * sizeof(u32));
+             // }
+        }
+    }
+
     // --------------------------------------------------
     // GMAC ETH
     // --------------------------------------------------
@@ -310,25 +340,204 @@ impl<A: Bcm54213HalTraits> Bcm54213NicDevice<A> {
         /* Enable RX/TX DMA */
         self.enable_dma();
         trace!("7");
-        /* read PHY properties over the wire from generic PHY set-up */
-        // ret = phy_startup(priv->phydev);
-        // 	if (ret) {
-        // 		printf("bcmgenet: PHY startup failed: %d\n", ret);
-        // 		return ret;
-        // 	}
-        // 	/* Update MAC registers based on PHY property */
-        // 	ret = bcmgenet_adjust_link(priv);
-        // 	if (ret) {
-        // 		printf("bcmgenet: adjust PHY link failed: %d\n", ret);
-        // 		return ret;
-        // 	}
+
+        // TODO should connect IRQ here
+        // CInterruptSystem::Get ()->ConnectIRQ (ARM_IRQ_BCM54213_0, InterruptStub0, this);
+        // CInterruptSystem::Get ()->ConnectIRQ (ARM_IRQ_BCM54213_1, InterruptStub1, this);
+
+        // TODO mii_probe
+        // ret = mii_probe();
+        // if (ret)
+        // {
+        // 	CLogger::Get ()->Write (FromBcm54213, LogError, "Failed to connect to PHY (%d)", ret);
         //
-        /* Enable Rx/Tx */
-        setbits_32(
-            ARM_BCM54213_BASE + GENET_UMAC_OFF + UMAC_CMD,
-            CMD_TX_EN | CMD_RX_EN,
-        );
-        trace!("8");
+        // 	CInterruptSystem::Get ()->DisconnectIRQ (ARM_IRQ_BCM54213_0);
+        // 	CInterruptSystem::Get ()->DisconnectIRQ (ARM_IRQ_BCM54213_1);
+        // 	m_bInterruptConnected = FALSE;
+        //
+        // 	return FALSE;
+        // }
+        //
+        // netif_start();
+        //
+        // set_rx_mode ();
+        //
+        // AddNetDevice ();
+    }
+
+    // --------------------------------------------------
+    // MII
+    // --------------------------------------------------
+
+    // TODO uncheck
+    // Initialize link state variables that mii_setup() uses
+    unsafe fn mii_probe(&self) {
+        let m_old_link = -1;
+        let m_old_speed = -1;
+        let m_old_duplex = -1;
+        let m_old_pause = -1;
+
+        // probe PHY
+        let ret = self.mdio_reset();
+        warn!("mdio_reset Failure");
+        self.mii_setup();
+
+        self.mii_config();
+    }
+
+    // setup netdev link state when PHY link status change and
+    // update UMAC and RGMII block when link up
+    // TODO uncheck
+    // TODO unfinish
+    unsafe fn mii_setup(&self) {
+        let status_changed = false;
+        // bool status_changed = false;
+        //
+        // if (m_old_link != m_link) {
+        //  status_changed = true;
+        //  m_old_link = m_link;
+        // }
+        //
+        // if (!m_link)
+        //  return;
+        //
+        // // check speed/duplex/pause changes
+        // if (m_old_speed != m_speed) {
+        //  status_changed = true;
+        //  m_old_speed = m_speed;
+        // }
+        //
+        // if (m_old_duplex != m_duplex) {
+        //  status_changed = true;
+        //  m_old_duplex = m_duplex;
+        // }
+        //
+        // if (m_old_pause != m_pause) {
+        //  status_changed = true;
+        //  m_old_pause = m_pause;
+        // }
+        //
+        // // done if nothing has changed
+        // if (!status_changed)
+        //  return;
+        //
+        // // speed
+        // u32 cmd_bits = 0;
+        // if (m_speed == 1000)
+        //  cmd_bits = UMAC_SPEED_1000;
+        // else if (m_speed == 100)
+        //  cmd_bits = UMAC_SPEED_100;
+        // else
+        //  cmd_bits = UMAC_SPEED_10;
+        // cmd_bits <<= CMD_SPEED_SHIFT;
+        //
+        // // duplex
+        // if (!m_duplex)
+        //  cmd_bits |= CMD_HD_EN;
+        //
+        // // pause capability
+        // if (!m_pause)
+        //  cmd_bits |= CMD_RX_PAUSE_IGNORE | CMD_TX_PAUSE_IGNORE;
+        //
+        // // Program UMAC and RGMII block based on established
+        // // link speed, duplex, and pause. The speed set in
+        // // umac->cmd tell RGMII block which clock to use for
+        // // transmit -- 25MHz(100Mbps) or 125MHz(1Gbps).
+        // // Receive clock is provided by the PHY.
+        // u32 reg = ext_readl(EXT_RGMII_OOB_CTRL);
+        // reg &= ~OOB_DISABLE;
+        // reg |= RGMII_LINK;
+        // ext_writel(reg, EXT_RGMII_OOB_CTRL);
+        //
+        // reg = umac_readl(UMAC_CMD);
+        // reg &= ~((CMD_SPEED_MASK << CMD_SPEED_SHIFT)
+        //  | CMD_HD_EN
+        //  | CMD_RX_PAUSE_IGNORE | CMD_TX_PAUSE_IGNORE);
+        // reg |= cmd_bits;
+        // umac_writel(reg, UMAC_CMD);
+    }
+
+    // TODO uncheck
+    unsafe fn mii_config(&self) {
+        // RGMII_NO_ID: TXC transitions at the same time as TXD
+        //		(requires PCB or receiver-side delay)
+        // RGMII:	Add 2ns delay on TXC (90 degree shift)
+        //
+        // ID is implicitly disabled for 100Mbps (RG)MII operation.
+        let id_mode_dis = (1 << 16);
+        write_volatile_wrapper!(PORT_MODE_EXT_GPHY as u32, genet_io!("sys", SYS_PORT_CTRL));
+        // This is an external PHY (xMII), so we need to enable the RGMII
+        // block for the interface to work
+
+        let mut reg = read_volatile_wrapper!(genet_io!("ext", EXT_RGMII_OOB_CTRL));
+        reg |= (RGMII_MODE_EN | id_mode_dis) as u32;
+        write_volatile_wrapper!(reg, genet_io!("ext", EXT_RGMII_OOB_CTRL));
+    }
+
+    // --------------------------------------------------
+    // MDIO
+    // --------------------------------------------------
+
+    // TODO uncheck
+    unsafe fn mdio_reset(&self) -> isize {
+        let ret = self.mdio_read(MII_BMSR);
+        if ret < 0 {
+            return ret;
+        }
+        0
+    }
+
+    // TODO unfinish
+    // TODO uncheck
+    unsafe fn mdio_read(&self, reg: usize) -> isize {
+        let cmd = MDIO_RD | (PHY_ID << MDIO_PMD_SHIFT) | (reg << MDIO_PMD_SHIFT);
+        write_volatile_wrapper!(cmd as u32, genet_io!("mdio", MDIO_CMD));
+
+        self.mdio_start();
+        self.mdio_wait();
+
+        let cmd = read_volatile_wrapper!(genet_io!("mdio", MDIO_CMD));
+
+        if cmd & (MDIO_READ_FAIL as u32) != 0 {
+            warn!("mdio_read Failure");
+            return -1;
+        }
+
+        (cmd & 0xFFFF) as isize
+    }
+
+    // TODO uncheck
+    unsafe fn mdio_write(&self, reg: usize, val: usize) {
+        let cmd = MDIO_WR | (PHY_ID << MDIO_PMD_SHIFT) | (reg << MDIO_REG_SHIFT) | (0xFFFF & val);
+        write_volatile_wrapper!(cmd as u32, genet_io!("mdio", MDIO_CMD));
+
+        self.mdio_start();
+
+        self.mdio_wait();
+    }
+
+    // TODO uncheck
+    unsafe fn mdio_start(&self) {
+        trace!("mdio_start");
+        let mut reg: u32 = read_volatile_wrapper!(genet_io!("mdio", MDIO_CMD));
+        reg |= (MDIO_START_BUSY as u32);
+        write_volatile_wrapper!(reg, genet_io!("mdio", MDIO_CMD));
+    }
+
+    // TODO uncheck
+    unsafe fn mdio_wait(&self) {
+        trace!("mdio_wait");
+        let start_time = A::current_time();
+
+        loop {
+            if A::current_time() - start_time >= 1000 {
+                break;
+            }
+            let reg = read_volatile_wrapper!(genet_io!("umac", UMAC_MDIO_CMD));
+            if reg & (MDIO_START_BUSY as u32) != 0 {
+                break;
+            }
+        }
     }
 }
 

@@ -27,6 +27,27 @@ pub const ARM_BCM54213_MDIO: usize = (ARM_BCM54213_BASE + 0x0E14);
 pub const ARM_BCM54213_MDIO_END: usize = (ARM_BCM54213_BASE + 0x0E1B);
 pub const ARM_BCM54213_END: usize = (ARM_BCM54213_BASE + 0xFFFF);
 
+//
+// UniMAC MDIO
+//
+
+pub const MDIO_CMD: usize = 0x00; // same register as UMAC_MDIO_CMD
+
+pub const MII_BMSR: usize = 0x01;
+pub const BMSR_LSTATUS: usize = 0x0004;
+pub const MII_ADVERTISE: usize = 0x04;
+pub const MII_LPA: usize = 0x05;
+pub const LPA_10HALF: usize = 0x0020;
+pub const LPA_10FULL: usize = 0x0040;
+pub const LPA_100HALF: usize = 0x0080;
+pub const LPA_100FULL: usize = 0x0100;
+pub const LPA_PAUSE_CAP: usize = 0x0400;
+pub const MII_CTRL1000: usize = 0x09;
+pub const MII_STAT1000: usize = 0x0A;
+pub const LPA_1000MSFAIL: usize = 0x8000;
+pub const LPA_1000FULL: usize = 0x0800;
+pub const LPA_1000HALF: usize = 0x0400;
+
 //--------------------------------------------------
 // Personal
 //--------------------------------------------------
@@ -35,6 +56,8 @@ pub const ARM_BCM54213_END: usize = (ARM_BCM54213_BASE + 0xFFFF);
 
 const DMA_CHANNEL_BASE: usize = ARM_IO_BASE + 0x7000;
 const DMA_CHANNEL_OFFSET: usize = 0x0100;
+
+pub const PHY_ID: usize = 0x01; // TODO set PHY_ID as 0x01 for default.
 
 //--------------------------------------------------
 // Full Copy Of circle consts

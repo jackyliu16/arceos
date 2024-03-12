@@ -47,4 +47,7 @@ macro_rules! genet_io {
     ("rbuf", $reg:expr) => {
         ARM_BCM54213_BASE + GENET_RBUF_OFF + $reg
     };
+    ("mdio", $reg:expr) => {
+        ARM_BCM54213_MDIO + $reg
+    };
 }
