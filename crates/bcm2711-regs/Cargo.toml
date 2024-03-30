@@ -1,5 +1,5 @@
 [package]
-name = "bcm2711"
+name = "bcm2711-regs"
 version = "0.1.0"
 authors = ["Jon Lamb"]
 edition = "2018"

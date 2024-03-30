@@ -1,0 +1,23 @@
+[package]
+name = "bcm2711-hal"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# cortex-a = "2.7"
+aarch64-cpu = "9.0.0"
+nb = "0.1"
+bitfield = "0.13"
+typenum = "1.10"
+arr_macro = "0.1"
+static_assertions = "1.1"
+
+bcm2711-regs = { path = "../bcm2711-regs" }
+
+[dependencies.void]
+default-features = false
+version = "1.0"
+
+[dependencies.embedded-hal]
+features = ["unproven"]
+version = "0.2"
