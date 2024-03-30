@@ -587,6 +587,7 @@ dependencies = [
  "bcm2711-regs",
  "bitfield",
  "embedded-hal",
+ "log",
  "nb 0.1.3",
  "static_assertions",
  "typenum",
@@ -1655,6 +1656,7 @@ version = "0.1.0"
 dependencies = [
  "axstd",
  "bcm2711-hal",
+ "embedded-hal",
 ]
 
 [[package]]

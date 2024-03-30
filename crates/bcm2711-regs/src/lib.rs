@@ -5,7 +5,7 @@ extern crate bounded_registers;
 #[macro_use]
 extern crate typenum;
 
-const MMIO_BASE: usize = 0xFE00_0000;
+const MMIO_BASE: usize = 0xFFFF_0000_FE00_0000;
 
 pub mod dma;
 pub mod genet;
