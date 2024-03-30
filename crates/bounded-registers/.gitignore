@@ -1,0 +1,13 @@
+/target
+**/*.rs.bk
+Cargo.lock
+\#*
+
+*.agdai
+*.tex
+*.tex.bak
+*.out
+*.log
+*.aux
+*.ptb
+agda.sty
