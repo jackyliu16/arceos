@@ -1,0 +1,11 @@
+[package]
+name = "bcm2711"
+version = "0.1.0"
+authors = ["Jon Lamb"]
+edition = "2018"
+
+[dependencies]
+typenum = "1.10"
+bounded-registers = { path = "../bounded-registers" } # fix const_fn features deprecated
+bitfield = "0.13"
+static_assertions = "1.1"
