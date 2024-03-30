@@ -25,3 +25,4 @@ pub mod spi2;
 pub mod sys_timer;
 pub mod uart0;
 pub mod uart1;
+pub mod uart3;

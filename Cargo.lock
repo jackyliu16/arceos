@@ -1657,6 +1657,7 @@ dependencies = [
  "axstd",
  "bcm2711-hal",
  "embedded-hal",
+ "log",
 ]
 
 [[package]]
