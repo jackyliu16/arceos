@@ -9,7 +9,7 @@
 //! https://www.raspberrypi.org/documentation/configuration/uart.md
 
 use crate::clocks::Clocks;
-use crate::gpio::{Alternate, Pin4, Pin5, Pin14, Pin15, AF0, AF4, AF5};
+use crate::gpio::{Alternate, Pin14, Pin15, Pin4, Pin5, AF0, AF4, AF5};
 use crate::hal::prelude::*;
 use crate::hal::serial;
 use crate::time::Bps;
@@ -91,7 +91,6 @@ impl<PINS> serial::Write<u8> for Serial<UART0, PINS> {
 
     fn write(&mut self, byte: u8) -> nb::Result<(), Void> {
         use bcm2711_regs::uart0::{Data, Flag};
-        log::debug!("byte: {byte}");
         if !self.uart.fr.is_set(Flag::TxFull::Read) {
             self.uart
                 .dr
@@ -163,7 +162,6 @@ impl<PINS> serial::Write<u8> for Serial<UART3, PINS> {
 
     fn write(&mut self, byte: u8) -> nb::Result<(), Void> {
         use bcm2711_regs::uart3::{Data, Flag};
-        log::debug!("byte: {byte}");
         if !self.uart.fr.is_set(Flag::TxFull::Read) {
             self.uart
                 .dr
@@ -187,7 +185,6 @@ impl<PINS> fmt::Write for Serial<UART3, PINS> {
         Ok(())
     }
 }
-
 
 impl<PINS> Serial<UART1, PINS> {
     pub fn uart1(mut uart: UART1, pins: PINS, baud_rate: Bps, clocks: Clocks) -> Self
@@ -257,7 +254,6 @@ impl<PINS> serial::Write<u8> for Serial<UART1, PINS> {
 
     fn write(&mut self, byte: u8) -> nb::Result<(), Void> {
         use bcm2711_regs::uart1::{Data, LineStatus};
-        log::debug!("byte: {byte}");
         if self.uart.lsr.is_set(LineStatus::TxEmpty::Read) {
             self.uart
                 .io

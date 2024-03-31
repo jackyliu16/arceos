@@ -31,7 +31,7 @@ pub use crate::genet::sys::SYS;
 pub use crate::genet::tx_dma::TXDMA;
 pub use crate::genet::umac::UMAC;
 
-pub const PADDR: usize = 0xFD58_0000;
+pub const PADDR: usize = 0xFFFF_0000_FD58_0000;
 
 pub const SYS_PADDR: usize = PADDR + 0x0000;
 pub const EXT_PADDR: usize = PADDR + 0x0080;

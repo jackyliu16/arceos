@@ -1,6 +1,7 @@
 //! Cache utilities
 //!
 //! Mostly copied from https://github.com/rsta2/circle/blob/master/lib/synchronize64.cpp
+//! TODO: CHECK: maybe incorrect change
 
 use aarch64_cpu::asm::barrier;
 use core::arch::asm;
@@ -127,3 +128,19 @@ pub unsafe fn clean_data_cache_range(mut address: usize, mut length: usize) {
     barrier::dsb(barrier::SY);
 }
 
+pub unsafe fn clean_and_invalidate_data_cache_range(mut address: usize, mut length: usize) {
+    length += DATA_CACHE_LINE_LENGTH_MIN;
+
+    loop {
+        asm!("DC CIVAC, {}", in(reg) address);
+
+        if length < DATA_CACHE_LINE_LENGTH_MIN {
+            break;
+        }
+
+        address += DATA_CACHE_LINE_LENGTH_MIN;
+        length -= DATA_CACHE_LINE_LENGTH_MIN;
+    }
+
+    barrier::dsb(barrier::SY);
+}

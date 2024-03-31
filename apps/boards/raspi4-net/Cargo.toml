@@ -7,6 +7,7 @@ edition = "2021"
 axstd = { path = "../../../ulib/axstd", optional = true }
 log = "0.4.0"
 bcm2711-hal = { path = "../../../crates/bcm2711-hal" }
+arr_macro = "0.2.1"
 
 [dependencies.embedded-hal]
 features = ["unproven"]
