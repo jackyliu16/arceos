@@ -74,6 +74,10 @@ register! {
             SixBit = U1,
             SevenBit = U2,
             EightBit = U3
+        ],
+        EnableFIFO WIDTH(U1) OFFSET(U4) [
+            Disabled = U0,
+            Enabled = U1
         ]
     ]
 }

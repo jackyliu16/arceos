@@ -136,7 +136,7 @@ impl<PINS> Serial<UART3, PINS> {
             .modify(IntegerBaudRateDivisor::Ibrd::Field::new(brr >> 6).unwrap());
         uart.fbrd
             .modify(FractionalBaudRateDivisor::Fbrd::Field::new(brr & 0x3F).unwrap());
-        uart.lcrh.modify(LineControl::WordLength::EightBit); // 8N1
+        uart.lcrh.modify(LineControl::WordLength::EightBit + LineControl::EnableFIFO::Enabled ); // 8N1
         uart.cr
             .modify(Control::Enable::Set + Control::TxEnable::Set + Control::RxEnable::Set);
 
@@ -145,6 +145,15 @@ impl<PINS> Serial<UART3, PINS> {
 
     pub fn free(self) -> (UART3, PINS) {
         (self.uart, self.pins)
+    }
+    pub fn get(&self) -> Option<u32> {
+        use bcm2711_regs::uart3::{Data, Flag};
+        if self.uart.fr.is_set(Flag::RxEmpty::Read) {
+            // log::debug!("EMPTY");
+            None
+        } else {
+            Some(self.uart.dr.get_field(Data::Data::Read).unwrap().val())
+        }
     }
 }
 

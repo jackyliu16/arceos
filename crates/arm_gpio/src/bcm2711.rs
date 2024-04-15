@@ -30,7 +30,12 @@ register_structs! {
         (0x24 => _reserved1),
         (0x28 => GPCLR0: ReadWrite<u32, GPCLR0::Register>),     // GPIO Pin Output Clear
         (0x2c => GPCLR1: ReadWrite<u32, GPCLR1::Register>),
-        (0x30 => @END),
+        (0x30 => _reserved2),
+        (0xe4 => GPIO_PUP_PDN_CNTRL_REG0: ReadWrite<u32, GPIO_PUP_PDN_CNTRL_REG0::Register>),
+        (0xe8 => GPIO_PUP_PDN_CNTRL_REG1: ReadWrite<u32, GPIO_PUP_PDN_CNTRL_REG1::Register>),
+        (0xec => GPIO_PUP_PDN_CNTRL_REG2: ReadWrite<u32, GPIO_PUP_PDN_CNTRL_REG2::Register>),
+        (0xf0 => GPIO_PUP_PDN_CNTRL_REG3: ReadWrite<u32, GPIO_PUP_PDN_CNTRL_REG3::Register>),
+        (0xf4 => @END),
     }
 }
 
@@ -123,6 +128,18 @@ register_bitfields! {
         PIN OFFSET(0) NUMBITS(31) [],
     ],
     // GPIO_PUP_PDN_REG https://pastebin.ubuntu.com/p/v6Hd4XKdMG/
+    GPIO_PUP_PDN_CNTRL_REG0 [
+        PIN OFFSET(0) NUMBITS(31) [],
+    ],
+    GPIO_PUP_PDN_CNTRL_REG1 [
+        PIN OFFSET(0) NUMBITS(31) [],
+    ],
+    GPIO_PUP_PDN_CNTRL_REG2 [
+        PIN OFFSET(0) NUMBITS(31) [],
+    ],
+    GPIO_PUP_PDN_CNTRL_REG3 [
+        PIN OFFSET(0) NUMBITS(31) [],
+    ],
 }
 
 pub struct GPIO {
@@ -208,5 +225,20 @@ impl GPIO {
             _ => panic!("Invalid value for gpio set_high"),
         }
         trace!("set {n} low");
+    }
+    pub fn pup_pdn_control_reg(&mut self, pin: u8, set: u8) {
+        debug!("pin: {pin}, set: {set}");
+        let gpfsel_divisor = pin / 16;
+        debug!("gpfsel_divisor = {gpfsel_divisor}");
+        if set > 2 {
+            panic!("PUP_PDN_CONTROL_REG value {} with incorrect range", set);
+        }
+        match gpfsel_divisor {
+            0 => self.regs().GPIO_PUP_PDN_CNTRL_REG0.set((set as u32) << (2 * pin % 16)), // Output
+            1 => self.regs().GPIO_PUP_PDN_CNTRL_REG1.set((set as u32) << (2 * pin % 16)),
+            2 => self.regs().GPIO_PUP_PDN_CNTRL_REG2.set((set as u32) << (2 * pin % 16)),
+            3 => self.regs().GPIO_PUP_PDN_CNTRL_REG3.set((set as u32) << (2 * pin % 16)),
+            _ => panic!("GPFSEL divisor overflow"),
+        }
     }
 }
