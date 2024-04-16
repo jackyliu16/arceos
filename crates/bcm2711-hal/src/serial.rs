@@ -8,6 +8,7 @@
 //! See the documentation:
 //! https://www.raspberrypi.org/documentation/configuration/uart.md
 
+
 use crate::clocks::Clocks;
 use crate::gpio::{Alternate, Pin14, Pin15, Pin4, Pin5, AF0, AF4, AF5};
 use crate::hal::prelude::*;
@@ -115,6 +116,7 @@ impl<PINS> fmt::Write for Serial<UART0, PINS> {
     }
 }
 
+static header: [u8; 8] = [0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A];
 impl<PINS> Serial<UART3, PINS> {
     pub fn uart3(mut uart: UART3, pins: PINS, baud_rate: Bps, clocks: Clocks) -> Self
     where
@@ -153,6 +155,43 @@ impl<PINS> Serial<UART3, PINS> {
             None
         } else {
             Some(self.uart.dr.get_field(Data::Data::Read).unwrap().val())
+        }
+    }
+    pub fn get_frame(&self) -> Option<Packet::Frame> {
+        // TODO: maybe circulation link list ?
+        let mut buffer = [0_u8; 32]; // macher of header
+        let mut cnt: u16 = 7;
+        let mut len = 0;
+        loop {
+            if let Some(data) = self.get() {
+                // if header haven't been match yet
+                // log::trace!("{:?}", buffer);
+                if &buffer[..8] != &header[..8] {
+                    // log::trace!("{buffer:?}");
+                    buffer.copy_within(1..8, 0);
+                    // log::trace!("{buffer:?}");
+                    buffer[8] = 0; // Clear the data left over from the previous operation
+                    assert!(data <= u8::MAX as u32);
+                    buffer[7] = data as u8;
+                };
+                // match header
+                if &buffer[..8] == &header[..8] {
+                    // log::trace!("match header");
+                    buffer[cnt as usize] = data as u8;
+
+                    // reach the end of frame
+                    if cnt > 11 {
+                        len = (buffer[8] as u16) << 8 | (buffer[9] as u16) << 0;
+                    }
+                    cnt += 1;
+                };
+            }
+
+            if len != 0 && (cnt - 11) == len { // Frame header + len + parity
+                log::trace!("{buffer:?}");
+                // log::trace!("REACH THE END {len}");
+                return Some(Packet::Frame::new(len, buffer[10], &buffer[11..cnt as usize]));
+            }
         }
     }
 }
@@ -285,4 +324,208 @@ impl<PINS> core::fmt::Write for Serial<UART1, PINS> {
         }
         Ok(())
     }
+}
+
+#[allow(dead_code)]
+pub mod Packet {
+    // TODO: refactor Debug trait 
+    #[repr(packed)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct Frame {
+        // forhead: [u8; 6],
+        length: u16,
+        parity: u8,
+        data: Data,
+    }
+    impl Frame {
+        pub fn new(length: u16, parity: u8, data: &[u8]) -> Self {
+            Self {
+                length, parity, data: Data::parse(length, data)
+            }
+        }
+        // pub fn generate_bytes_packs(){ }
+    }
+
+    #[repr(packed)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct Data {
+        pwd: u32,
+        cmd_type: CmdType,
+        cmd_word: CmdWord,
+        error_code: ErrorCode,
+        data: [u8; 16], 
+        checksum: u8,
+    }
+    impl Data {
+        fn new() -> Self { Self { 
+            pwd: 0, 
+            cmd_type: CmdType::None, 
+            cmd_word: CmdWord::None, 
+            error_code: ErrorCode::OtherError, 
+            data: [0; 16], 
+            checksum:0 
+        } }
+        fn parse(length: u16, data: &[u8]) -> Self {
+            log::debug!("user: {data:?}");
+            Self {
+                pwd: (data[0] as u32) << 24 | (data[1] as u32) << 16 | (data[2] as u32) << 8 | (data[3] as u32),
+                cmd_type: data[4].into(),
+                cmd_word: data[5].into(),
+                error_code: data[9].into(),
+                data: pad_slice(&data[9..(length as usize - 1)]),
+                checksum: data[length as usize - 1]
+            }
+        }
+    }
+    const TARGET_SIZE: usize = 16;
+    fn pad_slice(slice: &[u8]) -> [u8; TARGET_SIZE] {
+        let mut padded_slice = [0u8; TARGET_SIZE];
+        for (i, elem) in slice.iter().chain(core::iter::repeat(&0)).take(TARGET_SIZE).enumerate() {
+            padded_slice[i] = *elem;
+            if i > TARGET_SIZE {
+                log::error!("OVERFLOW BC data bit too long than we expect");
+            }
+        }
+        padded_slice
+    }
+
+    #[repr(u8)]
+    #[derive(Debug, Copy, Clone)]
+    pub enum CmdType {
+        None = 0x00,
+        Fingerprints= 0x01,
+        System      = 0x02,
+        Maintenance = 0x03,
+    }
+    impl From<CmdType> for u8 {
+        fn from(cmd_type: CmdType) -> u8 {
+            cmd_type as u8
+        }
+    }   
+    impl From<u8> for CmdType {
+        fn from(value: u8) -> CmdType {
+            log::debug!("value: {value}");
+            match value {
+                0x00 => CmdType::None,
+                0x01 => CmdType::Fingerprints,
+                0x02 => CmdType::System,
+                0x03 => CmdType::Maintenance,
+                _ => panic!("Unknown CmdType value: {}", value),
+            }
+        }
+    }
+
+    #[repr(u8)]
+    #[derive(Debug, Copy, Clone)]
+    pub enum CmdWord {
+        None = 0x10,
+        FingerprintRegistration = 0x11,
+        CheckRegistrationResults  = 0x12,
+        SaveFingerprint = 0x13,
+    }
+    impl From<CmdWord> for u8 {
+        fn from(cmd_word: CmdWord) -> u8 {
+            cmd_word as u8
+        }
+    }   
+    impl From<u8> for CmdWord {
+        fn from(value: u8) -> CmdWord {
+            match value {
+                0x00 => CmdWord::None,
+                0x11 => CmdWord::FingerprintRegistration,
+                0x12 => CmdWord::CheckRegistrationResults,
+                0x13 => CmdWord::SaveFingerprint,
+                _ => panic!("Unknown CmdType value: {}", value),
+            }
+        }
+    }
+
+    #[derive(Debug, Copy, Clone)]
+    enum ErrorCode {
+        Ok,
+        UnknownCmd,
+        CmdDataLenError,
+        CmdDataError,
+        CmdNotFinished,
+        NoReqCmd,
+        SysSoftError,
+        HardwareError,
+        NoFingerDetect,
+        FingerExtractError,
+        FingerMatchError,
+        StorageIsFull,
+        StorageWriteError,
+        StorageReadError,
+        UnqualifiedImageError,
+        SameId,
+        ImageLowCoverageError,
+        CaptureLargeMove,
+        CaptureNoMove,
+        StorageRepeatFingerprint,
+        CaptureImageFail,
+        ForceQuit,
+        NoneUpdate,
+        InvalidFingerprintId,
+        AdjustGainError,
+        DataBufferOverflow,
+        CurrentSensorSleep,
+        PasswordError,
+        ChecksumError,
+        PinError,
+        FlashIdError,
+        ParameterError,
+        ReadFtrError,
+        FtrCrcErr,
+        OtherError,
+    }
+    impl From<ErrorCode> for u8 {
+        fn from(error_code: ErrorCode) -> u8 {
+            error_code as u8
+        }
+    }   
+
+    impl From<u8> for ErrorCode {
+        fn from(code: u8) -> ErrorCode {
+            match code {
+                0x00 => ErrorCode::Ok,
+                0x01 => ErrorCode::UnknownCmd,
+                0x02 => ErrorCode::CmdDataLenError,
+                0x03 => ErrorCode::CmdDataError,
+                0x04 => ErrorCode::CmdNotFinished,
+                0x05 => ErrorCode::NoReqCmd,
+                0x06 => ErrorCode::SysSoftError,
+                0x07 => ErrorCode::HardwareError,
+                0x08 => ErrorCode::NoFingerDetect,
+                0x09 => ErrorCode::FingerExtractError,
+                0x0A => ErrorCode::FingerMatchError,
+                0x0B => ErrorCode::StorageIsFull,
+                0x0C => ErrorCode::StorageWriteError,
+                0x0D => ErrorCode::StorageReadError,
+                0x0E => ErrorCode::UnqualifiedImageError,
+                0x0F => ErrorCode::SameId,
+                0x10 => ErrorCode::ImageLowCoverageError,
+                0x11 => ErrorCode::CaptureLargeMove,
+                0x12 => ErrorCode::CaptureNoMove,
+                0x13 => ErrorCode::StorageRepeatFingerprint,
+                0x14 => ErrorCode::CaptureImageFail,
+                0x15 => ErrorCode::ForceQuit,
+                0x16 => ErrorCode::NoneUpdate,
+                0x17 => ErrorCode::InvalidFingerprintId,
+                0x18 => ErrorCode::AdjustGainError,
+                0x19 => ErrorCode::DataBufferOverflow,
+                0x1A => ErrorCode::CurrentSensorSleep,
+                0x1B => ErrorCode::PasswordError,
+                0x1C => ErrorCode::ChecksumError,
+                0x1D => ErrorCode::PinError,
+                0x20 => ErrorCode::FlashIdError,
+                0x21 => ErrorCode::ParameterError,
+                0x22 => ErrorCode::ReadFtrError,
+                0x23 => ErrorCode::FtrCrcErr,
+                0xFF => ErrorCode::OtherError,
+                _ => ErrorCode::OtherError,
+            }
+        }
+    }
+
+
 }
