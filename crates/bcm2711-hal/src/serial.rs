@@ -343,7 +343,14 @@ pub mod Packet {
                 length, parity, data: Data::parse(length, data)
             }
         }
-        // pub fn generate_bytes_packs(){ }
+        pub fn get_error_code(&self, cmd: CmdType) -> ErrorCode {
+            let cmd_type = self.data.cmd_type;
+            if cmd_type != cmd {
+                ErrorCode::OtherError
+            } else {
+                self.data.error_code.clone()
+            }
+        }
     }
 
     #[repr(packed)]
@@ -351,7 +358,6 @@ pub mod Packet {
     pub struct Data {
         pwd: u32,
         cmd_type: CmdType,
-        cmd_word: CmdWord,
         error_code: ErrorCode,
         data: [u8; 16], 
         checksum: u8,
@@ -360,7 +366,6 @@ pub mod Packet {
         fn new() -> Self { Self { 
             pwd: 0, 
             cmd_type: CmdType::None, 
-            cmd_word: CmdWord::None, 
             error_code: ErrorCode::OtherError, 
             data: [0; 16], 
             checksum:0 
@@ -369,8 +374,7 @@ pub mod Packet {
             log::debug!("user: {data:?}");
             Self {
                 pwd: (data[0] as u32) << 24 | (data[1] as u32) << 16 | (data[2] as u32) << 8 | (data[3] as u32),
-                cmd_type: data[4].into(),
-                cmd_word: data[5].into(),
+                cmd_type: ((data[4] as u16) << 8 | (data[5] as u16)).into(),
                 error_code: data[9].into(),
                 data: pad_slice(&data[9..(length as usize - 1)]),
                 checksum: data[length as usize - 1]
@@ -389,59 +393,48 @@ pub mod Packet {
         padded_slice
     }
 
-    #[repr(u8)]
-    #[derive(Debug, Copy, Clone)]
+    #[repr(u16)]
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub enum CmdType {
-        None = 0x00,
-        Fingerprints= 0x01,
-        System      = 0x02,
-        Maintenance = 0x03,
+        None = 0x0000,
+        // Fingerprint
+        FingerprintRegistration = 0x0111,
+        CheckRegisterResult     = 0x0112,
+        SaveFingerprint         = 0x0113,
+        CheckSaveFingerprintResult = 0x0114,
+
+        MatchFingerprint        = 0x0121,
+        CheckMatchFingerprint   = 0x0122,
+
+        // System
+        LEDControl              = 0x020F,
     }
-    impl From<CmdType> for u8 {
-        fn from(cmd_type: CmdType) -> u8 {
-            cmd_type as u8
+    impl From<CmdType> for u16 {
+        fn from(cmd_type: CmdType) -> u16 {
+            cmd_type as u16
         }
     }   
-    impl From<u8> for CmdType {
-        fn from(value: u8) -> CmdType {
+    impl From<u16> for CmdType {
+        fn from(value: u16) -> CmdType {
             log::debug!("value: {value}");
             match value {
-                0x00 => CmdType::None,
-                0x01 => CmdType::Fingerprints,
-                0x02 => CmdType::System,
-                0x03 => CmdType::Maintenance,
+                0x0000 => CmdType::None,
+                0x0111 => CmdType::FingerprintRegistration,
+                0x0112 => CmdType::CheckRegisterResult,
+                0x0113 => CmdType::SaveFingerprint,
+                0x0114 => CmdType::CheckSaveFingerprintResult,
+
+                0x0121 => CmdType::MatchFingerprint,
+                0x0122 => CmdType::CheckMatchFingerprint,
+
+                0x020F => CmdType::LEDControl,
                 _ => panic!("Unknown CmdType value: {}", value),
             }
         }
     }
 
-    #[repr(u8)]
-    #[derive(Debug, Copy, Clone)]
-    pub enum CmdWord {
-        None = 0x10,
-        FingerprintRegistration = 0x11,
-        CheckRegistrationResults  = 0x12,
-        SaveFingerprint = 0x13,
-    }
-    impl From<CmdWord> for u8 {
-        fn from(cmd_word: CmdWord) -> u8 {
-            cmd_word as u8
-        }
-    }   
-    impl From<u8> for CmdWord {
-        fn from(value: u8) -> CmdWord {
-            match value {
-                0x00 => CmdWord::None,
-                0x11 => CmdWord::FingerprintRegistration,
-                0x12 => CmdWord::CheckRegistrationResults,
-                0x13 => CmdWord::SaveFingerprint,
-                _ => panic!("Unknown CmdType value: {}", value),
-            }
-        }
-    }
-
-    #[derive(Debug, Copy, Clone)]
-    enum ErrorCode {
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    pub enum ErrorCode {
         Ok,
         UnknownCmd,
         CmdDataLenError,

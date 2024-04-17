@@ -21,7 +21,7 @@ use hal::bcm2711_regs::uart3::UART3;
 use hal::clocks::Clocks;
 use hal::eth::EthernetAddress;
 use hal::prelude::*;
-use hal::serial::Serial;
+use hal::serial::{Packet, Serial};
 use hal::serial::Packet::*;
 use hal::time::Bps;
 use log::debug;
@@ -44,80 +44,45 @@ fn main() {
     let mut serial = Serial::uart3(UART3::new(), (tx, rx), Bps(57600), clocks);
     debug!(":A:");
 
-    // let slice_of_greenflashing_mode = [
-    //     0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x0C, 0x81, 
-    //     0x00, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x04, 0x01, 0x14, 0x14, 0x05, 0xBD,
+    let slice_of_greenflashing_mode = [
+        0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x0C, 0x81, 
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x04, 0x01, 0x14, 0x14, 0x05, 0xBD,
+    ];
+    // let slice_of_enrolled_fingerprint1 = [
+    //     0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x08, 0x85, 
+    //     0x00, 0x00, 0x00, 0x00, 0x01, 0x11, 
+    //     0x01, 0xED,
     // ];
-    let slice_of_enrolled_fingerprint1 = [
-        0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x08, 0x85, 
-        0x00, 0x00, 0x00, 0x00, 0x01, 0x11, 
-        0x01, 0xED,
-    ];
-    let slice_of_enrolled_fingerprint2 = [
-        0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x08, 0x85, 
-        0x00, 0x00, 0x00, 0x00, 0x01, 0x11, 
-        0x02, 0xEC,
-    ];
-    let slice_of_enrolled_fingerprint3 = [
-        0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x08, 0x85, 
-        0x00, 0x00, 0x00, 0x00, 0x01, 0x11, 
-        0x03, 0xEB,
-    ];
-    let slice_of_enrolled_fingerprint4 = [
-        0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x08, 0x85, 
-        0x00, 0x00, 0x00, 0x00, 0x01, 0x11, 
-        0x04, 0xEA,
-    ];
-    let slice_of_enrolled_fingerprint5 = [
-        0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x08, 0x85, 
-        0x00, 0x00, 0x00, 0x00, 0x01, 0x11, 
-        0x05, 0xE9,
-    ];
-    let slice_of_enrolled_fingerprint_check = [
+
+    let Search_Fingerprint_Match_Start  = [
         0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x07, 0x86, 
-        0x00, 0x00, 0x00, 0x00, 0x01, 0x12, 
-        0xED,
+        0x00, 0x00, 0x00, 0x00, 0x01, 0x21, 
+        0xDE,
     ];
-    
-    log::debug!("register time 1");
-    for item in slice_of_enrolled_fingerprint1 { serial.write(item); }
-    delay(10);
+    let Search_Fingerprint_Match_Result  = [
+        0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x07, 0x86, 
+        0x00, 0x00, 0x00, 0x00, 0x01, 0x22, 
+        0xDD,
+    ];
 
-    log::debug!("{:?}", serial.get_frame().unwrap());
-    for item in slice_of_enrolled_fingerprint_check { serial.write(item); }
-    log::debug!("{:?}", serial.get_frame().unwrap());
+    loop {
+        for item in Search_Fingerprint_Match_Start { serial.write(item); }
+        delay(10);
+        log::debug!("Match: {:?}", serial.get_frame());
 
-    log::debug!("register time 2");
-    for item in slice_of_enrolled_fingerprint2 { serial.write(item); }
-    delay(10);
+        for item in Search_Fingerprint_Match_Result { serial.write(item); }
 
-    log::debug!("{:?}", serial.get_frame().unwrap());
-    for item in slice_of_enrolled_fingerprint_check { serial.write(item); }
-    log::debug!("{:?}", serial.get_frame().unwrap());
+        if let Some(frame) = serial.get_frame() {
+            if frame.get_error_code(CmdType::CheckMatchFingerprint) == Packet::ErrorCode::Ok {
+                for item in slice_of_greenflashing_mode { serial.write(item); }
+                delay(10);
+                log::trace!("Result: {:?}", frame);
+            } else {
+                log::debug!("{:?}", frame);
+            }
+        }
+    }
 
-    log::debug!("register time 3");
-    for item in slice_of_enrolled_fingerprint3 { serial.write(item); }
-    delay(10);
-
-    log::debug!("{:?}", serial.get_frame().unwrap());
-    for item in slice_of_enrolled_fingerprint_check { serial.write(item); }
-    log::debug!("{:?}", serial.get_frame().unwrap());
-
-    log::debug!("register time 4");
-    for item in slice_of_enrolled_fingerprint4 { serial.write(item); }
-    delay(10);
-
-    log::debug!("{:?}", serial.get_frame().unwrap());
-    for item in slice_of_enrolled_fingerprint_check { serial.write(item); }
-    log::debug!("{:?}", serial.get_frame().unwrap());
-
-    log::debug!("register time 5");
-    for item in slice_of_enrolled_fingerprint5 { serial.write(item); }
-    delay(10);
-
-    log::debug!("{:?}", serial.get_frame().unwrap());
-    for item in slice_of_enrolled_fingerprint_check { serial.write(item); }
-    log::debug!("{:?}", serial.get_frame().unwrap());
 }
 
 fn delay(seconds: u64) {
