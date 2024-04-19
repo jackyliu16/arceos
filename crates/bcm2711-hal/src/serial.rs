@@ -328,6 +328,7 @@ impl<PINS> core::fmt::Write for Serial<UART1, PINS> {
 
 #[allow(dead_code)]
 pub mod Packet {
+    const MAX_USER_LAYER_LENGTH: usize = 128 + 9;
     // TODO: refactor Debug trait 
     #[repr(packed)]
     #[derive(Debug, Copy, Clone)]
@@ -359,7 +360,7 @@ pub mod Packet {
         pwd: u32,
         cmd_type: CmdType,
         error_code: ErrorCode,
-        data: [u8; 16], 
+        data: [u8; MAX_USER_LAYER_LENGTH], 
         checksum: u8,
     }
     impl Data {
@@ -367,7 +368,7 @@ pub mod Packet {
             pwd: 0, 
             cmd_type: CmdType::None, 
             error_code: ErrorCode::OtherError, 
-            data: [0; 16], 
+            data: [0; MAX_USER_LAYER_LENGTH], 
             checksum:0 
         } }
         fn parse(length: u16, data: &[u8]) -> Self {
@@ -381,12 +382,11 @@ pub mod Packet {
             }
         }
     }
-    const TARGET_SIZE: usize = 16;
-    fn pad_slice(slice: &[u8]) -> [u8; TARGET_SIZE] {
-        let mut padded_slice = [0u8; TARGET_SIZE];
-        for (i, elem) in slice.iter().chain(core::iter::repeat(&0)).take(TARGET_SIZE).enumerate() {
+    fn pad_slice(slice: &[u8]) -> [u8; MAX_USER_LAYER_LENGTH] {
+        let mut padded_slice = [0u8; MAX_USER_LAYER_LENGTH];
+        for (i, elem) in slice.iter().chain(core::iter::repeat(&0)).take(MAX_USER_LAYER_LENGTH).enumerate() {
             padded_slice[i] = *elem;
-            if i > TARGET_SIZE {
+            if i > MAX_USER_LAYER_LENGTH {
                 log::error!("OVERFLOW BC data bit too long than we expect");
             }
         }
