@@ -387,7 +387,7 @@ pub mod Packet {
                 pwd: (data[0] as u32) << 24 | (data[1] as u32) << 16 | (data[2] as u32) << 8 | (data[3] as u32),
                 cmd_type: ((data[4] as u16) << 8 | (data[5] as u16)).into(),
                 error_code: data[9].into(),
-                data: pad_slice(&data[9..(length as usize - 1)]),
+                data: pad_slice(&data[10..(length as usize - 1)]),
                 checksum: data[length as usize - 1]
             }
         }
@@ -426,7 +426,7 @@ pub mod Packet {
     }   
     impl From<u16> for CmdType {
         fn from(value: u16) -> CmdType {
-            log::debug!("value: {value}");
+            // log::debug!("value: {value}");
             match value {
                 0x0000 => CmdType::None,
                 0x0111 => CmdType::FingerprintRegistration,

@@ -46,7 +46,11 @@ fn main() {
 
     let slice_of_greenflashing_mode = [
         0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x0C, 0x81, 
-        0x00, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x04, 0x01, 0x14, 0x14, 0x05, 0xBD,
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x04, 0x01, 0x14, 0x14, 0x02, 0xC0,
+    ];
+    let slice_of_redflashing_mode = [
+        0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x0C, 0x81, 
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x04, 0x02, 0x14, 0x14, 0x02, 0xBF,
     ];
 
     let Search_Fingerprint_Match_Start  = [
@@ -64,18 +68,36 @@ fn main() {
         log::debug!("====================================");
         for item in Search_Fingerprint_Match_Start { serial.write(item); }
         delay(10);
-        log::debug!("Match: {:?}", serial.get_frame());
+        serial.get_frame(); 
+        // log::debug!("Match: {:?}", serial.get_frame());
 
         for item in Search_Fingerprint_Match_Result { serial.write(item); }
 
         if let Some(frame) = serial.get_frame() {
-            if frame.get_error_code(CmdType::CheckMatchFingerprint) == Packet::ErrorCode::Ok {
+            assert!(frame.check_command(CmdType::CheckMatchFingerprint));
+
+            // NOTE: 对于 match 事件来说，没有报错并不意味着成功，只有当匹配结果选项 = 1，
+            // 或者说出现了匹配 ID 才能说明匹配成功
+
+            // log::debug!("{frame:?}")
+            let data =  frame.get_all_users_data();
+            log::debug!("data: {data:?}");
+
+            let data = frame.get_user_data(0, 2);
+            if frame.get_user_data(0, 2).iter().any(|&x|x!=0) {
                 for item in slice_of_greenflashing_mode { serial.write(item); }
-                delay(10);
-                log::trace!("Result: {:?}", frame);
             } else {
-                log::debug!("{:?}", frame);
+                for item in slice_of_redflashing_mode { serial.write(item); }
             }
+            serial.get_frame();
+
+            // if frame.get_error_code(CmdType::CheckMatchFingerprint) == Packet::ErrorCode::Ok {
+            //     for item in slice_of_greenflashing_mode { serial.write(item); }
+            //     delay(10);
+            //     log::trace!("Result: {:?}", frame);
+            // } else {
+            //     log::debug!("{:?}", frame);
+            // }
         }
     }
 }
