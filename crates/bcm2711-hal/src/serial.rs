@@ -352,6 +352,16 @@ pub mod Packet {
                 self.data.error_code.clone()
             }
         }
+        pub fn check_command(&self, cmd: CmdType) -> bool {
+            let cmd_type = self.data.cmd_type;
+            cmd_type == cmd
+        }
+        pub fn get_user_data(&self, start: usize, end: usize) -> &[u8] {
+            &self.data.data[start..end]
+        }
+        pub fn get_all_users_data(&self) -> &[u8] {
+            &self.data.data[..]
+        }
     }
 
     #[repr(packed)]
