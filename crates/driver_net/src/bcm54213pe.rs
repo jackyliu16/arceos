@@ -2,21 +2,24 @@ extern crate bcm2711_hal as hal;
 
 use crate::{EthernetAddress, NetBufPtr, NetDriverOps};
 use arr_macro::arr;
+use core::marker::PhantomData;
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use hal::bcm2711_regs::{mbox::MBOX, sys_timer::SysTimer};
+pub use hal::eth::Bcm54213peHal;
 use hal::eth::Eth as Bcm54213peDevice;
 use hal::eth::{Descriptor, Descriptors, Devices};
 use hal::prelude::*;
 
-pub struct Bcm54213peNic<'a> {
+pub struct Bcm54213peNic<'a, A: Bcm54213peHal> {
     device: Bcm54213peDevice<'a, 'a>,
+    phantom: PhantomData<A>,
 }
 
-unsafe impl Send for Bcm54213peNic<'_> {}
-unsafe impl Sync for Bcm54213peNic<'_> {}
+unsafe impl<A: Bcm54213peHal> Send for Bcm54213peNic<'_, A> {}
+unsafe impl<A: Bcm54213peHal> Sync for Bcm54213peNic<'_, A> {}
 
-impl Bcm54213peNic<'_> {
-    pub fn init() -> Self {
+impl<A: Bcm54213peHal> Bcm54213peNic<'_, A> {
+    pub fn init(trait_impl: A) -> Self {
         let eth_devices = Devices::new();
 
         let rx_descriptors = unsafe {
@@ -41,11 +44,14 @@ impl Bcm54213peNic<'_> {
             tx_descriptors,
         )
         .unwrap();
-        Self { device: eth }
+        Self {
+            device: eth,
+            phantom: PhantomData,
+        }
     }
 }
 
-impl BaseDriverOps for Bcm54213peNic<'_> {
+impl<A: Bcm54213peHal> BaseDriverOps for Bcm54213peNic<'_, A> {
     fn device_name(&self) -> &str {
         "Bcm54213peNic"
     }
@@ -54,7 +60,7 @@ impl BaseDriverOps for Bcm54213peNic<'_> {
     }
 }
 
-impl NetDriverOps for Bcm54213peNic<'_> {
+impl<A: Bcm54213peHal> NetDriverOps for Bcm54213peNic<'_, A> {
     /// The ethernet address of the NIC.
     fn mac_address(&self) -> EthernetAddress {
         let mut mbox = Mailbox::new(MBOX::new());

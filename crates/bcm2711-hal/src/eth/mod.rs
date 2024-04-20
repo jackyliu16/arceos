@@ -201,3 +201,7 @@ impl<'rx, 'tx> Eth<'rx, 'tx> {
         self.dma_send(length, f)
     }
 }
+
+pub trait Bcm54213peHal {
+    fn ndelay(n_times: usize);
+}
