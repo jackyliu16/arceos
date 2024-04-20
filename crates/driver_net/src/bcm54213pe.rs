@@ -1,12 +1,15 @@
 extern crate bcm2711_hal as hal;
 
 use crate::{EthernetAddress, NetBufPtr, NetDriverOps};
+use arr_macro::arr;
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
-use hal::bcm2711_regs::mbox::MBOX;
+use hal::bcm2711_regs::{mbox::MBOX, sys_timer::SysTimer};
 use hal::eth::Eth as Bcm54213peDevice;
+use hal::eth::{Descriptor, Descriptors, Devices};
+use hal::timer::TimerExt;
 
 pub struct Bcm54213peNic {
-    inner: usize,
+    device: Bcm54213peDevice,
 }
 
 unsafe impl Send for Bcm54213peNic {}
@@ -14,7 +17,30 @@ unsafe impl Sync for Bcm54213peNic {}
 
 impl Bcm54213peNic {
     pub fn init() -> Self {
-        Self { inner: 0 }
+        let eth_devices = Devices::new();
+
+        let rx_descriptors = unsafe {
+            static mut RX_DESC: Descriptors = arr![Descriptor::zero(); 256];
+            &mut RX_DESC[..]
+        };
+
+        let tx_descriptors = unsafe {
+            static mut TX_DESC: Descriptors = arr![Descriptor::zero(); 256];
+            &mut TX_DESC[..]
+        };
+
+        let sys_timer = SysTimer::new();
+        let mut sys_counter = sys_timer.split().sys_counter;
+        let mut mbox = Mailbox::new(MBOX::new());
+        let mut eth = Bcm54213peDevice::new(
+            eth_devices,
+            &mut sys_counter,
+            hal::eth::EthernetAddress::from(*get_mac_address(&mut mbox).mac_address()),
+            rx_descriptors,
+            tx_descriptors,
+        )
+        .unwrap();
+        Self { device: eth }
     }
 }
 

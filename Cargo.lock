@@ -1021,6 +1021,7 @@ dependencies = [
 name = "driver_net"
 version = "0.1.0"
 dependencies = [
+ "arr_macro 0.2.1",
  "bcm2711-hal",
  "driver_common",
  "ixgbe-driver",

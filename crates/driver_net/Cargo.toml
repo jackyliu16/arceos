@@ -12,7 +12,7 @@ documentation = "https://rcore-os.github.io/arceos/driver_net/index.html"
 [features]
 default = []
 ixgbe = ["dep:ixgbe-driver"]
-bcm54213pe = ["dep:bcm2711-hal"]
+bcm54213pe = ["dep:bcm2711-hal", "dep:arr_macro"]
 
 [dependencies]
 spin = "0.9"
@@ -20,3 +20,4 @@ log = "0.4"
 driver_common = { path = "../driver_common" }
 ixgbe-driver = {git = "https://github.com/KuangjuX/ixgbe-driver.git", rev = "8e5eb74", optional = true}
 bcm2711-hal = { path = "../bcm2711-hal", optional = true }
+arr_macro = { version = "0.2.1", optional = true }
