@@ -24,6 +24,18 @@ pub use self::net_buf::{NetBuf, NetBufBox, NetBufPool};
 /// The ethernet address of the NIC (MAC address).
 pub struct EthernetAddress(pub [u8; 6]);
 
+impl From<[u8; 6]> for EthernetAddress {
+    fn from(octets: [u8; 6]) -> Self {
+        EthernetAddress(octets)
+    }
+}
+
+impl Into<[u8; 6]> for EthernetAddress {
+    fn into(self) -> [u8; 6] {
+        self.0
+    }
+}
+
 /// Operations that require a network device (NIC) driver to implement.
 pub trait NetDriverOps: BaseDriverOps {
     /// The ethernet address of the NIC.

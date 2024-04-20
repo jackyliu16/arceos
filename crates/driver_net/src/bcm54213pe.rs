@@ -2,6 +2,7 @@ extern crate bcm2711_hal as hal;
 
 use crate::{EthernetAddress, NetBufPtr, NetDriverOps};
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
+use hal::bcm2711_regs::mbox::MBOX;
 use hal::eth::Eth as Bcm54213peDevice;
 
 pub struct Bcm54213peNic {
@@ -29,7 +30,8 @@ impl BaseDriverOps for Bcm54213peNic {
 impl NetDriverOps for Bcm54213peNic {
     /// The ethernet address of the NIC.
     fn mac_address(&self) -> EthernetAddress {
-        todo!()
+        let mut mbox = Mailbox::new(MBOX::new());
+        EthernetAddress::from(*get_mac_address(&mut mbox).mac_address())
     }
 
     /// Whether can transmit packets.
@@ -88,5 +90,18 @@ impl NetDriverOps for Bcm54213peNic {
     /// returns [`DevResult`]
     fn alloc_tx_buffer(&mut self, size: usize) -> DevResult<NetBufPtr> {
         Err(DevError::Unsupported)
+    }
+}
+
+use hal::mailbox::{Channel, GetMacAddressRepr, Mailbox, RespMsg};
+fn get_mac_address(mbox: &mut Mailbox) -> GetMacAddressRepr {
+    let resp = mbox
+        .call(Channel::Prop, &GetMacAddressRepr::default())
+        .expect("MBox call()");
+
+    if let RespMsg::GetMacAddress(repr) = resp {
+        repr
+    } else {
+        panic!("Invalid response\n{:#?}", resp);
     }
 }
