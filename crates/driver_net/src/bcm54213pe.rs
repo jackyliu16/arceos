@@ -8,14 +8,14 @@ use hal::eth::Eth as Bcm54213peDevice;
 use hal::eth::{Descriptor, Descriptors, Devices};
 use hal::timer::TimerExt;
 
-pub struct Bcm54213peNic {
-    device: Bcm54213peDevice,
+pub struct Bcm54213peNic<'a> {
+    device: Bcm54213peDevice<'a, 'a>,
 }
 
-unsafe impl Send for Bcm54213peNic {}
-unsafe impl Sync for Bcm54213peNic {}
+unsafe impl Send for Bcm54213peNic<'_> {}
+unsafe impl Sync for Bcm54213peNic<'_> {}
 
-impl Bcm54213peNic {
+impl Bcm54213peNic<'_> {
     pub fn init() -> Self {
         let eth_devices = Devices::new();
 
@@ -44,7 +44,7 @@ impl Bcm54213peNic {
     }
 }
 
-impl BaseDriverOps for Bcm54213peNic {
+impl BaseDriverOps for Bcm54213peNic<'_> {
     fn device_name(&self) -> &str {
         "Bcm54213peNic"
     }
@@ -53,7 +53,7 @@ impl BaseDriverOps for Bcm54213peNic {
     }
 }
 
-impl NetDriverOps for Bcm54213peNic {
+impl NetDriverOps for Bcm54213peNic<'_> {
     /// The ethernet address of the NIC.
     fn mac_address(&self) -> EthernetAddress {
         let mut mbox = Mailbox::new(MBOX::new());
