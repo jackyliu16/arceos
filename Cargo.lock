@@ -1020,6 +1020,7 @@ dependencies = [
 name = "driver_net"
 version = "0.1.0"
 dependencies = [
+ "bcm2711-hal",
  "driver_common",
  "ixgbe-driver",
  "log",

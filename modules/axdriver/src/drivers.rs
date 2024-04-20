@@ -5,7 +5,7 @@
 use crate::AxDeviceEnum;
 use axalloc::{global_allocator, global_no_cache_allocator};
 use driver_common::DeviceType;
-use driver_pci::{types::ConfigSpace, PciAddress};
+// use driver_pci::{types::ConfigSpace, PciAddress};
 
 #[cfg(feature = "virtio")]
 use crate::virtio::{self, VirtIoDevMeta};
@@ -101,7 +101,7 @@ cfg_if::cfg_if! {
                     dev_info: &DeviceFunctionInfo,
                     cfg: &ConfigSpace,
                 ) -> Option<AxDeviceEnum> {
-              
+
                 VL805::probe_pci(cfg, global_no_cache_allocator()).map(|d| AxDeviceEnum::from_usb_host(d))
             }
         }
