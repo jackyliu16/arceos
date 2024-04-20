@@ -9,7 +9,9 @@ use bcm2711_regs::genet::{
 };
 use core::convert::TryInto;
 
-impl<'rx, 'tx> Eth<'rx, 'tx> {
+use crate::eth::Bcm54213peHal;
+
+impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
     pub(crate) fn dma_enable(&mut self) {
         self.dev
             .rdma

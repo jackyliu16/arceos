@@ -1,6 +1,8 @@
 use crate::eth::mdio::{MiiBmsr, MiiLpa, MiiStat1000, Register};
 use crate::eth::{Error, Eth};
 
+use crate::eth::Bcm54213peHal;
+
 pub struct Status {
     pub link_status: bool,
     pub speed: u16,
@@ -8,7 +10,7 @@ pub struct Status {
     pub pause: bool,
 }
 
-impl<'rx, 'tx> Eth<'rx, 'tx> {
+impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
     pub(crate) fn phy_read_status(&mut self) -> Result<Status, Error> {
         // Update the link status
         let bmsr: MiiBmsr = self.mdio_read(Register::MiiBmsr)?.into();

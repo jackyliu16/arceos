@@ -11,7 +11,7 @@ use hal::eth::{Descriptor, Descriptors, Devices};
 use hal::prelude::*;
 
 pub struct Bcm54213peNic<'a, A: Bcm54213peHal> {
-    device: Bcm54213peDevice<'a, 'a>,
+    device: Bcm54213peDevice<'a, 'a, A>,
     phantom: PhantomData<A>,
 }
 

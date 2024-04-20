@@ -4,7 +4,9 @@ use bcm2711_regs::genet::rbuf::*;
 use bcm2711_regs::genet::sys::*;
 use bcm2711_regs::genet::umac::*;
 
-impl<'rx, 'tx> Eth<'rx, 'tx> {
+use crate::eth::Bcm54213peHal;
+
+impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
     pub(crate) fn umac_reset<D: DelayUs<u32>>(&mut self, delay: &mut D) {
         // 7358a0/7552a0: bad default in RBUF_FLUSH_CTRL.umac_sw_rst
         unsafe {

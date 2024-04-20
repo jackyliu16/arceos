@@ -10,6 +10,7 @@ pub use crate::eth::address::EthernetAddress;
 pub use crate::eth::descriptor::Descriptor;
 pub use crate::eth::phy::Status as PhyStatus;
 pub use crate::eth::rx::RxPacket;
+use core::marker::PhantomData;
 use log::{debug, trace};
 
 mod address;
@@ -81,16 +82,17 @@ pub enum Error {
     TimedOut,
 }
 
-pub struct Eth<'rx, 'tx> {
+pub struct Eth<'rx, 'tx, A: Bcm54213peHal> {
     c_index: usize,
     rx_index: usize,
     tx_index: usize,
     dev: Devices,
     rx_mem: &'rx mut [Descriptor],
     tx_mem: &'tx mut [Descriptor],
+    phantom: PhantomData<A>,
 }
 
-impl<'rx, 'tx> Eth<'rx, 'tx> {
+impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
     pub fn new<D: DelayUs<u32>>(
         devices: Devices,
         delay: &mut D,
@@ -141,6 +143,7 @@ impl<'rx, 'tx> Eth<'rx, 'tx> {
             dev: devices,
             rx_mem,
             tx_mem,
+            phantom: PhantomData,
         };
 
         trace!("A");
