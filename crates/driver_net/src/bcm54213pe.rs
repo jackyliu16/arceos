@@ -4,7 +4,6 @@ use crate::{EthernetAddress, NetBufPtr, NetDriverOps};
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use hal::eth::Eth as Bcm54213peDevice;
 
-use core::marker::PhantomData;
 pub struct Bcm54213peNic {
     inner: usize,
 }
@@ -13,7 +12,7 @@ unsafe impl Send for Bcm54213peNic {}
 unsafe impl Sync for Bcm54213peNic {}
 
 impl Bcm54213peNic {
-    fn init() -> Self {
+    pub fn init() -> Self {
         Self { inner: 0 }
     }
 }

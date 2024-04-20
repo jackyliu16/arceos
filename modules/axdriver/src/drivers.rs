@@ -172,13 +172,11 @@ cfg_if::cfg_if! {
 cfg_if::cfg_if! {
     if #[cfg(net_dev = "bcm54213pe")] {
 
-        error!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         pub struct Bcm54213peDriver;
-        register_net_driver!(Bcm54213peDriver, driver_net::bcm54213pe::Bcm54213peNic());
+        register_net_driver!(Bcm54213peDriver, driver_net::bcm54213pe::Bcm54213peNic);
 
         impl DriverProbe for Bcm54213peDriver {
-            fn probe_pci() -> Option<AxDeviceEnum> {
-                debug!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+            fn probe_global() -> Option<AxDeviceEnum> {
                 use driver_net::bcm54213pe::Bcm54213peNic;
                 let bcm54213pe_nic = Bcm54213peNic::init();
                 return Some(AxDeviceEnum::from_net(bcm54213pe_nic));

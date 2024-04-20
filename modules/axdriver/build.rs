@@ -1,4 +1,6 @@
-const NET_DEV_FEATURES: &[&str] = &["ixgbe", "virtio-net", "bcm54213pe"];
+// NOTE: Drivers match one by one from the left until they reach the virtual device
+
+const NET_DEV_FEATURES: &[&str] = &["bcm54213pe", "ixgbe", "virtio-net"];
 const BLOCK_DEV_FEATURES: &[&str] = &["ramdisk", "bcm2835-sdhci", "virtio-blk"];
 const DISPLAY_DEV_FEATURES: &[&str] = &["virtio-gpu"];
 const USB_HOST_DEV_FEATURES: &[&str] = &["vl805"];

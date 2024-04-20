@@ -10,7 +10,7 @@
 pub mod ixgbe;
 
 #[cfg(feature = "bcm54213pe")]
-mod bcm54213pe;
+pub mod bcm54213pe;
 
 mod net_buf;
 
