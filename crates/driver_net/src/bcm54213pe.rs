@@ -6,7 +6,7 @@ use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use hal::bcm2711_regs::{mbox::MBOX, sys_timer::SysTimer};
 use hal::eth::Eth as Bcm54213peDevice;
 use hal::eth::{Descriptor, Descriptors, Devices};
-use hal::timer::TimerExt;
+use hal::prelude::*;
 
 pub struct Bcm54213peNic<'a> {
     device: Bcm54213peDevice<'a, 'a>,
@@ -31,6 +31,7 @@ impl Bcm54213peNic<'_> {
 
         let sys_timer = SysTimer::new();
         let mut sys_counter = sys_timer.split().sys_counter;
+        // sys_counter.delay_ms(100_u32);
         let mut mbox = Mailbox::new(MBOX::new());
         let mut eth = Bcm54213peDevice::new(
             eth_devices,
