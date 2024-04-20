@@ -149,16 +149,16 @@ impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
         trace!("A");
         eth.mii_config();
         trace!("B");
-        eth.umac_reset(delay);
+        eth.umac_reset();
         trace!("C");
         eth.mdio_reset();
 
         trace!("D");
-        eth.umac_reset2(delay);
+        eth.umac_reset2();
         trace!("E");
-        eth.umac_reset(delay);
+        eth.umac_reset();
         trace!("F");
-        eth.umac_init(delay);
+        eth.umac_init();
         trace!("G");
 
         eth.umac_set_hw_addr(&mac_address);
@@ -167,7 +167,7 @@ impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
         trace!("I");
 
         // Disable RX/TX DMA and flush TX queues
-        eth.dma_disable(delay);
+        eth.dma_disable();
         trace!("J");
 
         eth.rx_ring_init();

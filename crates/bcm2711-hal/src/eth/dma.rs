@@ -23,7 +23,7 @@ impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
             .modify(tx_dma::Ctrl::Enable::Set + tx_dma::Ctrl::DefDescEnable::Set);
     }
 
-    pub(crate) fn dma_disable<D: DelayUs<u32>>(&mut self, delay: &mut D) {
+    pub(crate) fn dma_disable(&mut self) {
         self.dev
             .tdma
             .ctrl
@@ -34,7 +34,7 @@ impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
             .modify(rx_dma::Ctrl::Enable::Clear + rx_dma::Ctrl::DefDescEnable::Clear);
 
         self.dev.umac.tx_flush.modify(TxFlush::Flush::Set);
-        delay.delay_us(10u32);
+        A::ndelay(10);
         self.dev.umac.tx_flush.modify(TxFlush::Flush::Clear);
     }
 

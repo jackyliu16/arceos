@@ -7,11 +7,11 @@ use bcm2711_regs::genet::umac::*;
 use crate::eth::Bcm54213peHal;
 
 impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
-    pub(crate) fn umac_reset<D: DelayUs<u32>>(&mut self, delay: &mut D) {
+    pub(crate) fn umac_reset(&mut self) {
         // 7358a0/7552a0: bad default in RBUF_FLUSH_CTRL.umac_sw_rst
         unsafe {
             self.dev.sys.rbuf_flush_ctrl.write(0);
-            delay.delay_us(10u32);
+            A::ndelay(10);
 
             // Disable MAC while updating its registers
             self.dev.umac.cmd.write(0);
@@ -21,26 +21,26 @@ impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
                 .umac
                 .cmd
                 .modify(Cmd::SwReset::Set + Cmd::LclLoopEn::Set);
-            delay.delay_us(2u32);
+            A::ndelay(10);
             self.dev.umac.cmd.write(0);
         }
     }
 
-    pub(crate) fn umac_reset2<D: DelayUs<u32>>(&mut self, delay: &mut D) {
+    pub(crate) fn umac_reset2(&mut self) {
         self.dev
             .sys
             .rbuf_flush_ctrl
             .modify(RBufFlushCtrl::Reset::Set);
-        delay.delay_us(10u32);
+        A::ndelay(10);
         self.dev
             .sys
             .rbuf_flush_ctrl
             .modify(RBufFlushCtrl::Reset::Clear);
-        delay.delay_us(10u32);
+        A::ndelay(10);
     }
 
-    pub(crate) fn umac_init<D: DelayUs<u32>>(&mut self, delay: &mut D) {
-        self.umac_reset(delay);
+    pub(crate) fn umac_init(&mut self) {
+        self.umac_reset();
 
         // Clear tx/rx counter
         unsafe {
