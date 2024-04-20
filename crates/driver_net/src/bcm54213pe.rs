@@ -44,6 +44,21 @@ impl<A: Bcm54213peHal> Bcm54213peNic<'_, A> {
             tx_descriptors,
         )
         .unwrap();
+
+        loop {
+            let status = eth.status().unwrap();
+            if status.link_status {
+                log::debug!("Link is up");
+                log::debug!("Speed: {}", status.speed);
+                log::debug!("Full duplex: {}", status.full_duplex);
+                assert_ne!(status.speed, 0, "Speed is 0");
+                assert_eq!(status.full_duplex, true, "Not full duplex");
+                break;
+            }
+            sys_counter.delay_ms(100_u32);
+            log::debug!(".");
+        }
+
         Self {
             device: eth,
             phantom: PhantomData,
