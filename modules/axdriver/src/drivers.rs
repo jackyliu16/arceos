@@ -168,3 +168,18 @@ cfg_if::cfg_if! {
         }
     }
 }
+
+cfg_if::cfg_if! {
+    if #[cfg(net_dev = "bcm54213pe")] {
+        pub struct Bcm54213peDriver;
+        register_net_driver!(Bcm54213peDriver, driver_net::bcm54213pe::Bcm54213peNic());
+
+        impl DriverProbe for IxgbeDriver {
+            fn probe_pci() -> Option<AxDeviceEnum> {
+                use driver_net::bcm54213pe::Bcm54213peNic;
+                let bcm54213pe_nic = Bcm54213peNic::init();
+                return Some(AxDeviceEnum::from_phy(bcm54213pe_nic));
+            }
+        }
+    }
+}
