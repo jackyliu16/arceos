@@ -555,6 +555,7 @@ dependencies = [
  "axerrno",
  "axfeat",
  "axio",
+ "axnet",
  "spinlock",
 ]
 

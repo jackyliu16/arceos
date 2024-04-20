@@ -59,7 +59,8 @@ bus-pci = ["axfeat/bus-pci"]
 driver-ramdisk = ["axfeat/driver-ramdisk"]
 driver-ixgbe = ["axfeat/driver-ixgbe"]
 driver-bcm2835-sdhci = ["axfeat/driver-bcm2835-sdhci"]
-driver-bcm54213pe = ["axfeat/driver-bcm54213pe"]
+# driver-bcm54213pe = ["axfeat/driver-bcm2835-sdhci"]
+driver-bcm54213pe = ["alloc", "axfeat/net", "dep:axnet", "axfeat/driver-bcm54213pe"]
 
 # Logging
 log-level-off = ["axfeat/log-level-off"]
@@ -75,3 +76,4 @@ arceos_api = { path = "../../api/arceos_api" }
 axio = { path = "../../crates/axio" }
 axerrno = { path = "../../crates/axerrno" }
 spinlock = { path = "../../crates/spinlock" }
+axnet = { path = "../../modules/axnet", optional = true }
