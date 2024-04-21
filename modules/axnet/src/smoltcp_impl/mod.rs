@@ -271,7 +271,7 @@ impl<'a> TxToken for AxNetTxToken<'a> {
             let netbufptr = NetBufPtr::new(
                 core::ptr::NonNull::new_unchecked(slices.as_mut_ptr()),
                 core::ptr::NonNull::new_unchecked(slices.as_mut_ptr()),
-                0x2000,
+                len,
             );
             // let mut tx_buf = dev.alloc_tx_buffer(len).unwrap();
             // let ret = f(tx_buf.packet_mut());
