@@ -25,7 +25,7 @@ const PUNCH_RECEIVED: [u8; 16] = [
 fn receive_loop() -> io::Result<()> {
     let addr = (LOCAL_IP, LOCAL_PORT).to_socket_addrs()?.next().unwrap();
     let local_sock = UdpSocket::bind(addr)?;
-    local_sock.set_nonblocking(true);
+    // local_sock.set_nonblocking(true);
     // let addr = (LOCAL_IP, LOCAL_PORT).to_socket_addrs()?.next().unwrap();
     // let target_sock = UdpSocket::bind(addr)?;
 
