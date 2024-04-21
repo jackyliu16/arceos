@@ -1687,6 +1687,7 @@ version = "0.1.0"
 dependencies = [
  "arm_gpio",
  "arr_macro 0.2.1",
+ "axhal",
  "axstd",
  "bcm2711-hal",
  "embedded-hal",

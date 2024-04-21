@@ -53,6 +53,7 @@ fn main_loop() -> io::Result<()> {
     println!("listen on: {}", socket.local_addr().unwrap());
     let mut buf = [0u8; 1024];
     loop {
+        let mut current: usize = 0;
         log::debug!("loop");
         // 1. try to recevice data from eth
         // TODO: 看上去这个东西是阻塞的
@@ -72,14 +73,46 @@ fn main_loop() -> io::Result<()> {
         }
         log::debug!("loop");
 
+        // 2. try to send Match and CheckMatch to fpm383c
         for item in fpm383c::SLICE_OF_GREENFLASHING_MODE {
             serial.write(item);
         }
+        serial.get_frame();
 
-        // 2. try to send Match and CheckMatch to fpm383c
-        // 3. collect match result
-        //      if match send packet to eth for report punch card
-        //      else red light
+        for item in fpm383c::CHECK_FINGERPRINT_MATCH_RESULT {
+            serial.write(item);
+        }
+
+        if let Some(frame) = serial.get_frame() {
+            assert!(frame.check_command(CmdType::CheckMatchFingerprint));
+
+            // NOTE: 对于 match 事件来说，没有报错并不意味着成功，只有当匹配结果选项 = 1，
+            // 或者说出现了匹配 ID 才能说明匹配成功
+
+            log::debug!("{frame:?}");
+            // let data = frame.get_all_users_data();
+            // log::debug!("data: {data:?}");
+
+            let data = frame.get_user_data(0, 2);
+            log::debug!("data：{data:?}");
+            // 3. collect match result
+            //      if match send packet to eth for report punch card
+            //      else red light
+            if frame.get_user_data(0, 2).iter().any(|&x| x != 0) {
+                current = axhal::time::current_time().as_millis() as usize;
+                for item in fpm383c::SLICE_OF_GREENFLASHING_MODE {
+                    serial.write(item);
+                }
+            } else {
+                if current == 0 || (current != 0 && (axhal::time::current_time().as_millis() as usize) - current >= 2000) {
+                    current = 0;
+                    for item in fpm383c::SLICE_OF_REDFLASHING_MODE {
+                        serial.write(item);
+                    }
+                }
+            }
+            serial.get_frame();
+        }
         delay(10);
     }
 }
@@ -191,7 +224,7 @@ mod fpm383c {
         0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x07, 0x86, 0x00, 0x00, 0x00, 0x00,
         0x01, 0x21, 0xDE,
     ];
-    pub static SEARCH_FINGERPRINT_MATCH_RESULT: [u8; 18] = [
+    pub static CHECK_FINGERPRINT_MATCH_RESULT: [u8; 18] = [
         0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A, 0x00, 0x07, 0x86, 0x00, 0x00, 0x00, 0x00,
         0x01, 0x22, 0xDD,
     ];
