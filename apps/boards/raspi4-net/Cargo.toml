@@ -10,6 +10,7 @@ bcm2711-hal = { path = "../../../crates/bcm2711-hal" }
 arr_macro = "0.2.1"
 arm_gpio = { version = "0.1.0", path = "../../../crates/arm_gpio/" }
 axhal = { path = "../../../modules/axhal" }
+axerrno = { path = "../../../crates/axerrno" }
 
 [dependencies.embedded-hal]
 features = ["unproven"]

@@ -193,6 +193,7 @@ name = "arceos-udpserver"
 version = "0.1.0"
 dependencies = [
  "axstd",
+ "log",
 ]
 
 [[package]]
@@ -1687,6 +1688,7 @@ version = "0.1.0"
 dependencies = [
  "arm_gpio",
  "arr_macro 0.2.1",
+ "axerrno",
  "axhal",
  "axstd",
  "bcm2711-hal",

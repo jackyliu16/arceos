@@ -27,6 +27,7 @@ axdriver = { path = "../axdriver", features = ["net"] }
 axio = { path = "../../crates/axio" }
 
 [dependencies.smoltcp]
+# path = "../../crates/smoltcp"
 git = "https://github.com/rcore-os/smoltcp.git"
 rev = "2ade274"
 default-features = false

@@ -11,6 +11,7 @@ use crate::hal::eth::*;
 use crate::hal::mailbox::{Channel, GetMacAddressRepr, Mailbox, RespMsg};
 use arm_gpio::GPIO as MyGPIO;
 use arr_macro::arr;
+use axerrno::AxError;
 use axstd::io;
 use axstd::net::{IpAddr, SocketAddr, ToSocketAddrs, UdpSocket};
 use axstd::println;
@@ -49,7 +50,7 @@ fn main_loop() -> io::Result<()> {
 
     let addr = (LOCAL_IP, LOCAL_PORT).to_socket_addrs()?.next().unwrap();
     let mut socket = UdpSocket::bind(addr)?;
-    socket.set_nonblocking(true);
+    // socket.set_nonblocking(true);
     println!("listen on: {}", socket.local_addr().unwrap());
     let mut buf = [0u8; 1024];
     loop {
@@ -60,19 +61,24 @@ fn main_loop() -> io::Result<()> {
         // 1. try to receive data from eth(noblocking)
         // TODO: 还未完成
         match socket.recv_from(&mut buf) {
-            Ok((size, addr)) => {
-                buf = [0u8; 1024]
-            },
-            Err(e) => {}
+            Ok((size, addr)) => buf = [0u8; 1024],
+            Err(e) if e == AxError::WouldBlock => continue,
+            Err(e) => {
+                log::debug!("{e:?}");
+            }
         }
-
+        log::debug!("AAA");
         // try to send match and check match to fpm383c
-        for item in fpm383c::SEARCH_FINGERPRINT_MATCH_START { serial.write(item); }
+        for item in fpm383c::SEARCH_FINGERPRINT_MATCH_START {
+            serial.write(item);
+        }
         delay(10);
-        serial.get_frame(); 
+        serial.get_frame();
         // log::debug!("Match: {:?}", serial.get_frame());
 
-        for item in fpm383c::CHECK_FINGERPRINT_MATCH_RESULT { serial.write(item); }
+        for item in fpm383c::CHECK_FINGERPRINT_MATCH_RESULT {
+            serial.write(item);
+        }
 
         if let Some(frame) = serial.get_frame() {
             assert!(frame.check_command(CmdType::CheckMatchFingerprint));
@@ -81,22 +87,25 @@ fn main_loop() -> io::Result<()> {
             // 或者说出现了匹配 ID 才能说明匹配成功
 
             // log::debug!("{frame:?}")
-            let data =  frame.get_all_users_data();
+            let data = frame.get_all_users_data();
             log::debug!("data: {data:?}");
 
             let data = frame.get_user_data(0, 2);
-            if frame.get_user_data(0, 2).iter().any(|&x|x!=0) {
-                for item in fpm383c::SLICE_OF_GREENFLASHING_MODE { serial.write(item); }
+            if frame.get_user_data(0, 2).iter().any(|&x| x != 0) {
+                for item in fpm383c::SLICE_OF_GREENFLASHING_MODE {
+                    serial.write(item);
+                }
             } else {
                 // TODO: should be remove
-                for item in fpm383c::SLICE_OF_REDFLASHING_MODE { serial.write(item); }
+                for item in fpm383c::SLICE_OF_REDFLASHING_MODE {
+                    serial.write(item);
+                }
             }
             serial.get_frame();
 
             delay(10);
         }
     }
-
 }
 
 #[no_mangle]
