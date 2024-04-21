@@ -265,10 +265,19 @@ impl<'a> TxToken for AxNetTxToken<'a> {
         F: FnOnce(&mut [u8]) -> R,
     {
         let mut dev = self.0.borrow_mut();
-        let mut tx_buf = dev.alloc_tx_buffer(len).unwrap();
-        let ret = f(tx_buf.packet_mut());
-        trace!("SEND {} bytes: {:02X?}", len, tx_buf.packet());
-        dev.transmit(tx_buf).unwrap();
+        let mut slices: [u8; 0x2000] = [0; 0x2000];
+        let ret = f(&mut slices[..]);
+        unsafe {
+            let netbufptr = NetBufPtr::new(
+                core::ptr::NonNull::new_unchecked(slices.as_mut_ptr()),
+                core::ptr::NonNull::new_unchecked(slices.as_mut_ptr()),
+                0x2000,
+            );
+            // let mut tx_buf = dev.alloc_tx_buffer(len).unwrap();
+            // let ret = f(tx_buf.packet_mut());
+            trace!("SEND {} bytes: {:02X?}", len, netbufptr.packet());
+            dev.transmit(netbufptr).unwrap();
+        }
         ret
     }
 }

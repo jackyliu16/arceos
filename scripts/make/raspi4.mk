@@ -31,6 +31,7 @@ ifeq ($(BSP),rpi4)
 endif
 
 EXEC_MINIPUSH      = ruby tools/raspi4/common/serial/minipush.rb
+EXEC_MINITERM      = ruby tools/raspi4/common/serial/miniterm.rb
 
 ##------------------------------------------------------------------------------
 ## Dockerization
@@ -51,6 +52,7 @@ ifeq ($(shell uname -s),Linux)
     DOCKER_CHAINBOOT = $(DOCKER_CMD_DEV) $(DOCKER_ARG_DIR_COMMON) $(DOCKER_IMAGE)
     DOCKER_JTAGBOOT  = $(DOCKER_CMD_DEV) $(DOCKER_ARG_DIR_COMMON) $(DOCKER_ARG_DIR_JTAG) $(DOCKER_IMAGE)
     DOCKER_OPENOCD   = $(DOCKER_CMD_DEV) $(DOCKER_ARG_NET) $(DOCKER_IMAGE)
+    DOCKER_MINITERM = $(DOCKER_CMD_DEV) $(DOCKER_ARG_DIR_COMMON) $(DOCKER_IMAGE)
 else
     DOCKER_OPENOCD   = echo "Not yet supported on non-Linux systems."; \#
 endif
@@ -72,7 +74,13 @@ chainboot: $(KERNEL_BIN)
 ##--------------------------------------------------------------------------------------------------
 ## Debugging targets
 ##--------------------------------------------------------------------------------------------------
-.PHONY: jtagboot openocd gdb gdb-opt0
+.PHONY: miniterm jtagboot openocd gdb gdb-opt0
+
+##------------------------------------------------------------------------------
+## Connect to the target's serial
+##------------------------------------------------------------------------------
+miniterm:
+	@$(DOCKER_MINITERM) $(EXEC_MINITERM) $(DEV_SERIAL)
 
 ##------------------------------------------------------------------------------
 ## Push the JTAG boot image to the real HW target
