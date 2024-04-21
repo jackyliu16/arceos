@@ -97,6 +97,8 @@
               rustup
               cargo-binutils
               rust-toolchain
+              
+              apacheHttpd
             ]) ++ [
               # Overlays part
               pkgs.qemu
