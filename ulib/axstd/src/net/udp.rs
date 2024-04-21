@@ -93,4 +93,8 @@ impl UdpSocket {
     pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
         api::ax_udp_recv(&self.0, buf)
     }
+
+    pub fn set_nonblocking(&self, nonblocking: bool) -> io::Result<()> {
+        api::ax_udp_set_nonblocking(&self.0, nonblocking)
+    }
 }

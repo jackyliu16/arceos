@@ -48,12 +48,14 @@ fn main_loop() -> io::Result<()> {
     let mut serial = Serial::uart3(UART3::new(), (tx, rx), Bps(57600), clocks);
 
     let addr = (LOCAL_IP, LOCAL_PORT).to_socket_addrs()?.next().unwrap();
-    let socket = UdpSocket::bind(addr)?;
+    let mut socket = UdpSocket::bind(addr)?;
+    socket.set_nonblocking(true);
     println!("listen on: {}", socket.local_addr().unwrap());
     let mut buf = [0u8; 1024];
     loop {
         log::debug!("loop");
         // 1. try to recevice data from eth
+        // TODO: 看上去这个东西是阻塞的
         match socket.recv_from(&mut buf) {
             Ok((size, addr)) => {
                 //      if send data -> download into fpm383c
@@ -66,7 +68,7 @@ fn main_loop() -> io::Result<()> {
                 // socket.send_to(mid.as_bytes(), addr)?;
                 buf = [0u8; 1024];
             }
-            Err(e) => return Err(e),
+            Err(e) => {}
         }
         log::debug!("loop");
 
