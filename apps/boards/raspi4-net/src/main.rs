@@ -104,63 +104,6 @@ fn main() {
     log::info!("hello, world");
 
     main_loop().expect("loop failure");
-
-    // let forged_pkt: [u8; 60] = [
-    //     0x3C, 0xE1, 0xA1, 0x4E, 0x48, 0x5C, 0xDC, 0xA6, 0x32, 0x2D, 0xD7, 0x6C, 0x88, 0x74, 0xE2,
-    //     0xE4, 0x36, 0x23, 0xFD, 0xEA, 0xCA, 0x87, 0x49, 0x5B, 0xD0, 0x20, 0x00, 0x00, 0x00, 0x00,
-    //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    // ];
-    //
-    // loop {
-    //     log::debug!("====================================");
-    //     for item in Search_Fingerprint_Match_Start {
-    //         serial.write(item);
-    //     }
-    //     delay(10);
-    //     serial.get_frame();
-    //     // log::debug!("Match: {:?}", serial.get_frame());
-    //
-    //     for item in Search_Fingerprint_Match_Result {
-    //         serial.write(item);
-    //     }
-    //
-    //     if let Some(frame) = serial.get_frame() {
-    //         assert!(frame.check_command(CmdType::CheckMatchFingerprint));
-    //
-    //         // NOTE: 对于 match 事件来说，没有报错并不意味着成功，只有当匹配结果选项 = 1，
-    //         // 或者说出现了匹配 ID 才能说明匹配成功
-    //
-    //         // log::debug!("{frame:?}")
-    //         let data = frame.get_all_users_data();
-    //         log::debug!("data: {data:?}");
-    //
-    //         let data = frame.get_user_data(0, 2);
-    //         if frame.get_user_data(0, 2).iter().any(|&x| x != 0) {
-    //             for item in slice_of_greenflashing_mode {
-    //                 serial.write(item);
-    //             }
-    //
-    //             eth.send(forged_pkt.len(), |buf| {
-    //                 buf.copy_from_slice(&forged_pkt);
-    //             })
-    //             .unwrap();
-    //         } else {
-    //             for item in slice_of_redflashing_mode {
-    //                 serial.write(item);
-    //             }
-    //         }
-    //         serial.get_frame();
-    //
-    //         // if frame.get_error_code(CmdType::CheckMatchFingerprint) == Packet::ErrorCode::Ok {
-    //         //     for item in slice_of_greenflashing_mode { serial.write(item); }
-    //         //     delay(10);
-    //         //     log::trace!("Result: {:?}", frame);
-    //         // } else {
-    //         //     log::debug!("{:?}", frame);
-    //         // }
-    //     }
-    // }
 }
 
 fn delay(seconds: u64) {
