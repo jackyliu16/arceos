@@ -12,7 +12,7 @@ use core::format_args;
 use core::iter::Iterator;
 use core::result::Result::{Err, Ok};
 
-const LOCAL_IP: &str = "0.0.0.0";
+const LOCAL_IP: &str = "192.168.1.3";
 const LOCAL_PORT: u16 = 5555;
 
 fn receive_loop() -> io::Result<()> {

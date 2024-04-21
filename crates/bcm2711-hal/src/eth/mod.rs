@@ -207,4 +207,14 @@ impl<'rx, 'tx, A: Bcm54213peHal> Eth<'rx, 'tx, A> {
 
 pub trait Bcm54213peHal {
     fn ndelay(n_times: usize);
+    // fn phys_to_virt(pa: usize) -> usize {
+    //     pa
+    // }
+    // fn virt_to_phys(va: usize) -> usize {
+    //     va
+    // }
+    // fn dma_alloc_pages(pages: usize) -> (usize, usize);
+    // fn dma_free_pages(vaddr: usize, pages: usize);
+    // fn current_time() -> usize;
+    // fn register_irq(irq_num: usize, handler: IrqHandler) -> bool;
 }

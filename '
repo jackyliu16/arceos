@@ -3,12 +3,9 @@ extern crate bcm2711_hal as hal;
 use crate::{EthernetAddress, NetBufPtr, NetDriverOps};
 use arr_macro::arr;
 use core::marker::PhantomData;
-use core::ptr::NonNull;
-use core::slice;
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use hal::bcm2711_regs::{mbox::MBOX, sys_timer::SysTimer};
 pub use hal::eth::Bcm54213peHal;
-use hal::eth::Error;
 use hal::eth::Eth as Bcm54213peDevice;
 use hal::eth::{Descriptor, Descriptors, Devices};
 use hal::prelude::*;
@@ -109,9 +106,7 @@ impl<A: Bcm54213peHal> NetDriverOps for Bcm54213peNic<'_, A> {
     ///
     /// `rx_buf` should be the same as the one returned by
     /// [`NetDriverOps::receive`].
-    fn recycle_rx_buffer(&mut self, rx_buf: NetBufPtr) -> DevResult {
-        Ok(())
-    }
+    fn recycle_rx_buffer(&mut self, rx_buf: NetBufPtr) -> DevResult {}
 
     /// Poll the transmit queue and gives back the buffers for previous transmiting.
     /// returns [`DevResult`].
@@ -122,16 +117,7 @@ impl<A: Bcm54213peHal> NetDriverOps for Bcm54213peNic<'_, A> {
     /// Transmits a packet in the buffer to the network, without blocking,
     /// returns [`DevResult`].
     fn transmit(&mut self, tx_buf: NetBufPtr) -> DevResult {
-        unsafe {
-            let ptr = tx_buf.packet();
-            // slice::from_raw_parts_mut(ptr, tx_buf.packet_len());
-            Ok(self
-                .device
-                .send(tx_buf.packet_len(), |buf| {
-                    buf.copy_from_slice(&ptr);
-                })
-                .unwrap())
-        }
+        Ok(())
     }
 
     /// Receives a packet from the network and store it in the [`NetBuf`],
@@ -143,26 +129,12 @@ impl<A: Bcm54213peHal> NetDriverOps for Bcm54213peNic<'_, A> {
     /// If currently no incomming packets, returns an error with type
     /// [`DevError::Again`].
     fn receive(&mut self) -> DevResult<NetBufPtr> {
-        unsafe {
-            match self.device.recv() {
-                Ok(mut rx_packet) => Ok(NetBufPtr::new(
-                    NonNull::new_unchecked(rx_packet.as_mut_ptr()),
-                    NonNull::new_unchecked(rx_packet.as_mut_ptr()),
-                    rx_packet.len(),
-                )),
-                Err(e) if e == Error::WouldBlock => Err(DevError::Again),
-                Err(e) => {
-                    log::error!("{e:?}");
-                    Err(DevError::Again)
-                }
-            }
-        }
+        self.device.recv()
     }
 
     /// Allocate a memory buffer of a specified size for network transmission,
     /// returns [`DevResult`]
     fn alloc_tx_buffer(&mut self, size: usize) -> DevResult<NetBufPtr> {
-        // NOTE: it seems no reason to do that
         Err(DevError::Unsupported)
     }
 }
