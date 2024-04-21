@@ -68,6 +68,7 @@ fn main_loop() -> io::Result<()> {
             }
             Err(e) => return Err(e),
         }
+        log::debug!("loop");
 
         for item in fpm383c::SLICE_OF_GREENFLASHING_MODE {
             serial.write(item);
