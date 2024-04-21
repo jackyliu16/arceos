@@ -53,35 +53,26 @@ fn main_loop() -> io::Result<()> {
     println!("listen on: {}", socket.local_addr().unwrap());
     let mut buf = [0u8; 1024];
     loop {
-        let mut current: usize = 0;
-        log::debug!("loop");
-        // 1. try to recevice data from eth
-        // TODO: 看上去这个东西是阻塞的
+        // NOTE: 如果需要确定与上一次match之间的时间差异
+        // axhal::time:current_time().as_millis() as usize
+        // let mut current = 0;
+        log::debug!("====================================");
+        // 1. try to receive data from eth(noblocking)
+        // TODO: 还未完成
         match socket.recv_from(&mut buf) {
             Ok((size, addr)) => {
-                //      if send data -> download into fpm383c
-                //      elif send complete message -> light
-                //      else none
-                // log::debug!("recv: {}Bytes from {}", size, addr);
-                // let mid = core::str::from_utf8(&buf).unwrap();
-                // log::debug!("{}", mid);
-                // let mid = ["response_", mid].join("");
-                // socket.send_to(mid.as_bytes(), addr)?;
-                buf = [0u8; 1024];
-            }
+                buf = [0u8; 1024]
+            },
             Err(e) => {}
         }
-        log::debug!("loop");
 
-        // 2. try to send Match and CheckMatch to fpm383c
-        for item in fpm383c::SLICE_OF_GREENFLASHING_MODE {
-            serial.write(item);
-        }
-        serial.get_frame();
+        // try to send match and check match to fpm383c
+        for item in fpm383c::SEARCH_FINGERPRINT_MATCH_START { serial.write(item); }
+        delay(10);
+        serial.get_frame(); 
+        // log::debug!("Match: {:?}", serial.get_frame());
 
-        for item in fpm383c::CHECK_FINGERPRINT_MATCH_RESULT {
-            serial.write(item);
-        }
+        for item in fpm383c::CHECK_FINGERPRINT_MATCH_RESULT { serial.write(item); }
 
         if let Some(frame) = serial.get_frame() {
             assert!(frame.check_command(CmdType::CheckMatchFingerprint));
@@ -89,32 +80,23 @@ fn main_loop() -> io::Result<()> {
             // NOTE: 对于 match 事件来说，没有报错并不意味着成功，只有当匹配结果选项 = 1，
             // 或者说出现了匹配 ID 才能说明匹配成功
 
-            log::debug!("{frame:?}");
-            // let data = frame.get_all_users_data();
-            // log::debug!("data: {data:?}");
+            // log::debug!("{frame:?}")
+            let data =  frame.get_all_users_data();
+            log::debug!("data: {data:?}");
 
             let data = frame.get_user_data(0, 2);
-            log::debug!("data：{data:?}");
-            // 3. collect match result
-            //      if match send packet to eth for report punch card
-            //      else red light
-            if frame.get_user_data(0, 2).iter().any(|&x| x != 0) {
-                current = axhal::time::current_time().as_millis() as usize;
-                for item in fpm383c::SLICE_OF_GREENFLASHING_MODE {
-                    serial.write(item);
-                }
+            if frame.get_user_data(0, 2).iter().any(|&x|x!=0) {
+                for item in fpm383c::SLICE_OF_GREENFLASHING_MODE { serial.write(item); }
             } else {
-                if current == 0 || (current != 0 && (axhal::time::current_time().as_millis() as usize) - current >= 2000) {
-                    current = 0;
-                    for item in fpm383c::SLICE_OF_REDFLASHING_MODE {
-                        serial.write(item);
-                    }
-                }
+                // TODO: should be remove
+                for item in fpm383c::SLICE_OF_REDFLASHING_MODE { serial.write(item); }
             }
             serial.get_frame();
+
+            delay(10);
         }
-        delay(10);
     }
+
 }
 
 #[no_mangle]
